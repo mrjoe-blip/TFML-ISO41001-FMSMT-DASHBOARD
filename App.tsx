@@ -10,7 +10,7 @@ import { IsoStandardsView } from './components/IsoStandardsView';
 import { fetchRecordById, fetchDemoRecord } from './services/dataService';
 import { generateAnalysis } from './services/geminiService';
 import { MaturityRecord, AnalysisResult, LoadingState } from './types';
-import { Loader2, Search, AlertCircle, FileQuestion, Mail, Calendar, Building2, Sparkles } from 'lucide-react';
+import { Loader2, Search, AlertCircle, FileQuestion, Mail, Calendar, Building2, Sparkles, LayoutDashboard } from 'lucide-react';
 
 const App: React.FC = () => {
   const [record, setRecord] = useState<MaturityRecord | null>(null);
@@ -60,9 +60,11 @@ const App: React.FC = () => {
       console.error(e);
       setLoadingState(LoadingState.ERROR);
       if (e.message && e.message.includes("DEPLOYMENT_CONFIG_ERROR")) {
-        setErrorMessage("Deployment Error: The Google Script URL is invalid. Please check your Vercel Environment Variables.");
+        setErrorMessage("Configuration Error: The Google Script URL is invalid. Please check your Vercel Environment Variables.");
+      } else if (e.message && e.message.includes("INVALID_RESPONSE")) {
+        setErrorMessage("Data Error: Received invalid response from the server.");
       } else {
-        setErrorMessage("An unexpected error occurred connecting to the database.");
+        setErrorMessage("An unexpected error occurred connecting to the database. Please check your internet connection.");
       }
     }
   };
@@ -162,19 +164,27 @@ const App: React.FC = () => {
             <p className="text-red-700 mb-6 text-sm">
               {errorMessage || "An unexpected error occurred. Please try again later."}
             </p>
-            <button 
-              onClick={() => {
-                const id = new URLSearchParams(window.location.hash.split('?')[1]).get('id');
-                if (id) loadData(id);
-                else {
-                  setLoadingState(LoadingState.IDLE);
-                  window.location.hash = '';
-                }
-              }}
-              className="px-6 py-2 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 transition-colors text-sm"
-            >
-              Retry Connection
-            </button>
+            <div className="flex gap-3 justify-center">
+              <button 
+                onClick={() => {
+                  const id = new URLSearchParams(window.location.hash.split('?')[1]).get('id');
+                  if (id) loadData(id);
+                  else {
+                    setLoadingState(LoadingState.IDLE);
+                    window.location.hash = '';
+                  }
+                }}
+                className="px-4 py-2 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 transition-colors text-sm"
+              >
+                Retry
+              </button>
+              <button 
+                onClick={loadDemo}
+                className="px-4 py-2 bg-white text-red-700 font-bold rounded-lg border border-red-200 hover:bg-red-50 transition-colors text-sm"
+              >
+                View Demo Instead
+              </button>
+            </div>
           </div>
         </div>
       );
