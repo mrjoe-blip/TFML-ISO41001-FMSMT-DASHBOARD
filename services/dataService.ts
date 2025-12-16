@@ -1,27 +1,33 @@
-/// <reference types="vite/client" />
 import { MaturityRecord } from '../types';
 
-// Use import.meta.env for Vite-native environment variables
-const GAS_API_URL = import.meta.env.VITE_GOOGLE_SCRIPT_URL;
+// Use process.env for environment variables as configured in vite.config.ts
+const GAS_API_URL = process.env.VITE_GOOGLE_SCRIPT_URL;
 
 export const fetchRecordById = async (id: string): Promise<MaturityRecord | null> => {
   // If no URL is configured, or if requesting the specific demo user, return mock data.
   if (!GAS_API_URL || id === 'user_1') {
-    if (id !== 'user_1') {
+    if (id !== 'user_1' && (!GAS_API_URL || GAS_API_URL.trim() === '')) {
       console.warn("VITE_GOOGLE_SCRIPT_URL not set. Using mock data.");
     }
     return fetchDemoRecord();
   }
 
   try {
-    const response = await fetch(`${GAS_API_URL}?id=${id}`);
+    // Add timeout to prevent hanging requests
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+
+    const response = await fetch(`${GAS_API_URL}?id=${id}`, {
+      method: 'GET',
+      redirect: 'follow',
+      signal: controller.signal,
+    });
+    
+    clearTimeout(timeoutId);
     
     if (!response.ok) {
       if (response.status === 404) {
-        const text = await response.text();
-        if (text.includes("DEPLOYMENT_NOT_FOUND") || text.includes("Google Drive")) {
-           throw new Error("DEPLOYMENT_CONFIG_ERROR");
-        }
+        throw new Error("DEPLOYMENT_CONFIG_ERROR");
       }
       throw new Error(`HTTP error! status: ${response.status}`);
     }
@@ -41,11 +47,23 @@ export const fetchRecordById = async (id: string): Promise<MaturityRecord | null
     }
 
     return data as MaturityRecord;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Data Fetch Error:", error);
-    // If the fetch fails (e.g., network error, CORS, bad URL), 
-    // propagate it so the UI can show the System Error state.
-    throw error;
+
+    // If it's a configuration error or invalid response, we might want to let the UI handle it strictly.
+    // However, for generic network/CORS errors, fallback to demo is better UX than a crash.
+    if (error.message === "DEPLOYMENT_CONFIG_ERROR" || error.message === "INVALID_RESPONSE") {
+      throw error;
+    }
+
+    // For network errors, timeouts, or unknown issues, fallback to demo data to keep app alive.
+    console.warn("Connection failed. Falling back to Demo Data.");
+    const demoData = await fetchDemoRecord();
+    return {
+      ...demoData,
+      respondentName: "Demo (Offline/Fallback)",
+      organization: "Connection Failed - Demo Mode"
+    };
   }
 };
 

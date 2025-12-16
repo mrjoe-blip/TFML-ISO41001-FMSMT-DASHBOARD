@@ -10,7 +10,7 @@ import { IsoStandardsView } from './components/IsoStandardsView';
 import { fetchRecordById, fetchDemoRecord } from './services/dataService';
 import { generateAnalysis } from './services/geminiService';
 import { MaturityRecord, AnalysisResult, LoadingState } from './types';
-import { Loader2, Search, AlertCircle, FileQuestion, Mail, Calendar, Building2, Sparkles, LayoutDashboard } from 'lucide-react';
+import { Loader2, Search, AlertCircle, FileQuestion, Mail, Calendar, Building2, Sparkles, LayoutDashboard, WifiOff } from 'lucide-react';
 
 const App: React.FC = () => {
   const [record, setRecord] = useState<MaturityRecord | null>(null);
@@ -62,7 +62,7 @@ const App: React.FC = () => {
       if (e.message && e.message.includes("DEPLOYMENT_CONFIG_ERROR")) {
         setErrorMessage("Configuration Error: The Google Script URL is invalid. Please check your Vercel Environment Variables.");
       } else if (e.message && e.message.includes("INVALID_RESPONSE")) {
-        setErrorMessage("Data Error: Received invalid response from the server.");
+        setErrorMessage("Data Error: Received invalid response from the server. Ensure the Script deployment is set to 'Anyone'.");
       } else {
         setErrorMessage("An unexpected error occurred connecting to the database. Please check your internet connection.");
       }
@@ -194,8 +194,13 @@ const App: React.FC = () => {
       return (
         <div className="animate-fade-in pb-12">
           {/* Respondent Header */}
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 mb-8">
-            <div className="flex flex-col lg:flex-row justify-between lg:items-center gap-6">
+          <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 mb-8 relative overflow-hidden">
+             {record.organization.includes("Demo") && (
+               <div className="absolute top-0 right-0 bg-amber-100 text-amber-800 text-[10px] font-bold px-3 py-1 rounded-bl-xl border-b border-l border-amber-200 flex items-center gap-1">
+                 <WifiOff className="w-3 h-3" /> DEMO MODE
+               </div>
+             )}
+            <div className="flex flex-col lg:flex-row justify-between lg:items-center gap-6 mt-2">
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-2">
                    <Building2 className="w-5 h-5 text-blue-500" />

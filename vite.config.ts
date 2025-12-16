@@ -13,6 +13,7 @@ export default defineConfig(({ mode }) => {
       // Securely expose only the API_KEY. 
       // Do NOT expose the entire process.env object as it may contain sensitive server keys.
       'process.env.API_KEY': JSON.stringify(env.API_KEY),
+      'process.env.VITE_GOOGLE_SCRIPT_URL': JSON.stringify(env.VITE_GOOGLE_SCRIPT_URL),
     }
   };
 });
