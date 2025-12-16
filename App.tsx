@@ -10,7 +10,7 @@ import { IsoStandardsView } from './components/IsoStandardsView';
 import { fetchRecordById, fetchDemoRecord } from './services/dataService';
 import { generateAnalysis } from './services/geminiService';
 import { MaturityRecord, AnalysisResult, LoadingState } from './types';
-import { Loader2, Search, AlertCircle, FileQuestion, Mail, Calendar, Building2, Sparkles, LayoutDashboard, WifiOff } from 'lucide-react';
+import { Loader2, AlertCircle, FileQuestion, Mail, Calendar, Building2, Sparkles, WifiOff, Lock, ArrowRight, Share2, Printer, Check } from 'lucide-react';
 
 const App: React.FC = () => {
   const [record, setRecord] = useState<MaturityRecord | null>(null);
@@ -20,6 +20,7 @@ const App: React.FC = () => {
   const [analysisLoading, setAnalysisLoading] = useState<boolean>(false);
   const [inputId, setInputId] = useState('');
   const [currentView, setCurrentView] = useState('dashboard');
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     const handleHashChange = () => {
@@ -72,57 +73,83 @@ const App: React.FC = () => {
     }
   };
 
-  const handleManualSearch = (e: React.FormEvent) => {
+  const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     if (inputId.trim()) {
-      window.location.hash = `/report?id=${inputId}`;
+      window.location.hash = `/report?id=${inputId.trim()}`;
     }
   };
 
-  const loadDemo = () => {
-    window.location.hash = `/report?id=user_1`;
+  const handleShare = () => {
+    navigator.clipboard.writeText(window.location.href);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handlePrint = () => {
+    window.print();
   };
 
   const renderDashboard = () => {
     if (loadingState === LoadingState.IDLE) {
       return (
-        <div className="max-w-md mx-auto mt-12 md:mt-20 px-4 text-center animate-fade-in">
-          <div className="bg-white p-8 md:p-10 rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-100">
-            <h2 className="text-3xl font-bold text-slate-800 mb-3">Welcome</h2>
-            <p className="text-slate-500 mb-8 text-base">Enter your Respondent ID to view your personalized ISO 41001 AI Maturity Report.</p>
-            <form onSubmit={handleManualSearch} className="flex gap-2 mb-6">
-              <input 
-                type="text" 
-                placeholder="ID (e.g. user_1)" 
-                className="flex-1 px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm shadow-sm"
-                value={inputId}
-                onChange={(e) => setInputId(e.target.value)}
-              />
-              <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl transition-all shadow-md hover:shadow-lg font-medium">
-                <Search className="w-5 h-5" />
+        <div className="flex flex-col items-center justify-center min-h-[80vh] px-4 animate-fade-in">
+          <div className="bg-white p-8 md:p-12 rounded-2xl shadow-2xl shadow-slate-200/50 border border-slate-100 max-w-lg w-full text-center">
+            
+            <div className="flex justify-center mb-8">
+              <img src="/iso-fm-logo.png" alt="ISO FM Academy" className="h-20 w-auto object-contain" />
+            </div>
+
+            <h2 className="text-2xl font-bold text-slate-800 mb-2">Respondent Login</h2>
+            <p className="text-slate-500 mb-8 text-sm leading-relaxed">
+              Please enter the unique <span className="font-mono font-bold text-slate-700 bg-slate-100 px-1 py-0.5 rounded">Responder ID</span> provided in your dashboard email to access your diagnostic report.
+            </p>
+
+            <form onSubmit={handleLogin} className="flex flex-col gap-4">
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Lock className="h-5 w-5 text-slate-400" />
+                </div>
+                <input 
+                  type="text" 
+                  placeholder="Enter Responder ID" 
+                  className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800 placeholder-slate-400 transition-all"
+                  value={inputId}
+                  onChange={(e) => setInputId(e.target.value)}
+                  autoFocus
+                />
+              </div>
+              <button 
+                type="submit" 
+                disabled={!inputId.trim()}
+                className="group bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white text-base font-semibold py-3 rounded-xl transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+              >
+                Access Report
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </button>
             </form>
-            <div className="relative my-8">
-              <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-200"></div></div>
-              <div className="relative flex justify-center text-xs uppercase tracking-widest font-bold"><span className="px-3 bg-white text-slate-400">or try it out</span></div>
+
+            <div className="mt-8 pt-6 border-t border-slate-100">
+               <button onClick={() => window.location.hash = '/report?id=user_1'} className="text-xs text-slate-400 hover:text-blue-600 underline decoration-slate-300 underline-offset-4 transition-colors">
+                 View Demo Report
+               </button>
             </div>
-            <button 
-              onClick={loadDemo}
-              className="w-full bg-slate-50 hover:bg-slate-100 text-slate-700 font-semibold py-3 rounded-xl transition-colors border border-slate-200"
-            >
-              View Demo Report
-            </button>
           </div>
+          <p className="mt-8 text-xs text-slate-400">
+            © {new Date().getFullYear()} ISO FM Academy. All rights reserved.
+          </p>
         </div>
       );
     }
 
     if (loadingState === LoadingState.LOADING) {
       return (
-        <div className="flex flex-col items-center justify-center h-[50vh]">
-          <Loader2 className="w-12 h-12 text-blue-600 animate-spin mb-4" />
-          <h3 className="text-lg font-medium text-slate-700">Analyzing your data...</h3>
-          <p className="text-slate-400 text-sm mt-2">Connecting to AI Engine</p>
+        <div className="flex flex-col items-center justify-center h-[60vh]">
+          <div className="bg-white p-8 rounded-full shadow-lg mb-6">
+             <Loader2 className="w-12 h-12 text-blue-600 animate-spin" />
+          </div>
+          <h3 className="text-xl font-bold text-slate-800">Authenticating...</h3>
+          <p className="text-slate-400 text-sm mt-2">Verifying Responder ID and retrieving data</p>
         </div>
       );
     }
@@ -130,24 +157,28 @@ const App: React.FC = () => {
     if (loadingState === LoadingState.NOT_FOUND) {
       return (
         <div className="max-w-md mx-auto mt-20 px-4 text-center animate-fade-in">
-          <div className="bg-orange-50 p-8 rounded-2xl border border-orange-100">
+          <div className="bg-orange-50 p-8 rounded-2xl border border-orange-100 shadow-sm">
             <div className="flex justify-center mb-4">
               <div className="p-3 bg-orange-100 rounded-full">
                 <FileQuestion className="w-8 h-8 text-orange-500" />
               </div>
             </div>
-            <h3 className="text-xl font-bold text-orange-900 mb-2">Report Not Found</h3>
+            <h3 className="text-xl font-bold text-orange-900 mb-2">ID Not Found</h3>
             <p className="text-orange-700 mb-6 text-sm leading-relaxed">
-              We couldn't locate report ID <span className="font-mono bg-white px-2 py-0.5 rounded border border-orange-200 font-bold mx-1">{new URLSearchParams(window.location.hash.split('?')[1]).get('id') || 'unknown'}</span>
+              We couldn't locate a report for ID: <br/>
+              <span className="font-mono bg-white px-2 py-0.5 rounded border border-orange-200 font-bold mt-2 inline-block text-base">
+                {new URLSearchParams(window.location.hash.split('?')[1]).get('id') || 'unknown'}
+              </span>
             </p>
+            <p className="text-xs text-orange-600 mb-6">Please check the ID in your email and try again.</p>
             <button 
               onClick={() => {
                 setLoadingState(LoadingState.IDLE);
                 window.location.hash = '';
               }}
-              className="px-6 py-2 bg-white text-orange-700 font-bold rounded-lg border border-orange-200 hover:bg-orange-50 transition-colors text-sm"
+              className="w-full px-6 py-3 bg-white text-orange-700 font-bold rounded-xl border border-orange-200 hover:bg-orange-50 transition-colors shadow-sm"
             >
-              Back to Search
+              Back to Login
             </button>
           </div>
         </div>
@@ -157,17 +188,17 @@ const App: React.FC = () => {
     if (loadingState === LoadingState.ERROR) {
       return (
         <div className="max-w-md mx-auto mt-20 px-4 text-center animate-fade-in">
-          <div className="bg-red-50 p-8 rounded-2xl border border-red-100">
+          <div className="bg-red-50 p-8 rounded-2xl border border-red-100 shadow-sm">
             <div className="flex justify-center mb-4">
                <div className="p-3 bg-red-100 rounded-full">
                 <AlertCircle className="w-8 h-8 text-red-500" />
               </div>
             </div>
-            <h3 className="text-xl font-bold text-red-900 mb-2">System Error</h3>
+            <h3 className="text-xl font-bold text-red-900 mb-2">Access Error</h3>
             <p className="text-red-700 mb-6 text-sm">
               {errorMessage || "An unexpected error occurred. Please try again later."}
             </p>
-            <div className="flex gap-3 justify-center">
+            <div className="flex flex-col gap-3">
               <button 
                 onClick={() => {
                   const id = new URLSearchParams(window.location.hash.split('?')[1]).get('id');
@@ -177,15 +208,18 @@ const App: React.FC = () => {
                     window.location.hash = '';
                   }
                 }}
-                className="px-4 py-2 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 transition-colors text-sm"
+                className="w-full px-4 py-3 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 transition-colors shadow-sm"
               >
-                Retry
+                Retry Connection
               </button>
               <button 
-                onClick={loadDemo}
-                className="px-4 py-2 bg-white text-red-700 font-bold rounded-lg border border-red-200 hover:bg-red-50 transition-colors text-sm"
+                onClick={() => {
+                   setLoadingState(LoadingState.IDLE);
+                   window.location.hash = '';
+                }}
+                className="w-full px-4 py-3 bg-white text-red-700 font-bold rounded-xl border border-red-200 hover:bg-red-50 transition-colors"
               >
-                View Demo Instead
+                Return to Login
               </button>
             </div>
           </div>
@@ -195,11 +229,11 @@ const App: React.FC = () => {
 
     if (loadingState === LoadingState.SUCCESS && record) {
       return (
-        <div className="animate-fade-in pb-12">
+        <div className="animate-fade-in pb-12 print:pb-0">
           {/* Respondent Header */}
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 mb-8 relative overflow-hidden">
+          <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 mb-8 relative overflow-hidden print:shadow-none print:border print:border-slate-300">
              {record.organization.includes("Demo") && (
-               <div className="absolute top-0 right-0 bg-amber-100 text-amber-800 text-[10px] font-bold px-3 py-1 rounded-bl-xl border-b border-l border-amber-200 flex items-center gap-1">
+               <div className="absolute top-0 right-0 bg-amber-100 text-amber-800 text-[10px] font-bold px-3 py-1 rounded-bl-xl border-b border-l border-amber-200 flex items-center gap-1 print:hidden">
                  <WifiOff className="w-3 h-3" /> DEMO MODE
                </div>
              )}
@@ -211,8 +245,8 @@ const App: React.FC = () => {
                 </div>
                 
                 <div className="flex flex-wrap items-center gap-y-2 gap-x-6 text-sm text-slate-500 mt-2">
-                   <span className="font-medium text-slate-700 bg-slate-100 px-2 py-0.5 rounded">{record.respondentName}</span>
-                   <a href={`mailto:${record.respondentEmail}`} className="flex items-center gap-1.5 hover:text-blue-600 transition-colors">
+                   <span className="font-medium text-slate-700 bg-slate-100 px-2 py-0.5 rounded print:bg-transparent print:p-0">{record.respondentName}</span>
+                   <a href={`mailto:${record.respondentEmail}`} className="flex items-center gap-1.5 hover:text-blue-600 transition-colors print:text-slate-900">
                     <Mail className="w-4 h-4" />
                     {record.respondentEmail}
                   </a>
@@ -223,47 +257,67 @@ const App: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex items-center gap-4 self-start lg:self-center bg-slate-50 p-3 rounded-xl border border-slate-100">
-                <div className="text-right">
-                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-0.5">Maturity Level</p>
-                  <p className="text-lg font-bold text-slate-800 leading-none">{record.aiMaturityLevel}</p>
+              <div className="flex items-center gap-4 self-start lg:self-center">
+                 {/* Action Buttons (Hidden on Print) */}
+                <div className="hidden md:flex items-center gap-2 mr-4 print:hidden">
+                    <button 
+                      onClick={handleShare}
+                      className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-600 bg-slate-50 hover:bg-slate-100 rounded-lg border border-slate-200 transition-colors"
+                    >
+                      {copied ? <Check className="w-4 h-4 text-green-600" /> : <Share2 className="w-4 h-4" />}
+                      {copied ? 'Copied' : 'Share'}
+                    </button>
+                    <button 
+                      onClick={handlePrint}
+                      className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-600 bg-slate-50 hover:bg-slate-100 rounded-lg border border-slate-200 transition-colors"
+                    >
+                      <Printer className="w-4 h-4" />
+                      Print
+                    </button>
                 </div>
-                <div className={`w-2 h-10 rounded-full ${
-                  record.aiMaturityScore < 40 ? 'bg-red-500' : 
-                  record.aiMaturityScore < 70 ? 'bg-amber-500' : 'bg-emerald-500'
-                }`}></div>
+
+                <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 flex items-center gap-4 print:bg-transparent print:border-none">
+                  <div className="text-right">
+                    <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-0.5">Maturity Level</p>
+                    <p className="text-lg font-bold text-slate-800 leading-none">{record.aiMaturityLevel}</p>
+                  </div>
+                  <div className={`w-2 h-10 rounded-full print:border ${
+                    record.aiMaturityScore < 40 ? 'bg-red-500' : 
+                    record.aiMaturityScore < 70 ? 'bg-amber-500' : 'bg-emerald-500'
+                  }`}></div>
+                </div>
               </div>
             </div>
           </div>
 
           {/* Charts Row 1: Gauge & Benchmark */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
-            <div className="lg:col-span-1 h-full min-h-[320px]">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6 print:grid-cols-2 print:gap-4 print:mb-4">
+            <div className="lg:col-span-1 h-full min-h-[320px] print:min-h-[250px] print:border print:border-slate-200 print:rounded-xl">
                <ScoreGauge score={record.aiMaturityScore} level={record.aiMaturityLevel} />
             </div>
-            <div className="lg:col-span-2 h-full min-h-[350px]">
+            <div className="lg:col-span-2 h-full min-h-[350px] print:min-h-[250px] print:border print:border-slate-200 print:rounded-xl">
                <BenchmarkChart data={record} />
             </div>
           </div>
 
           {/* Charts Row 2: Detail Bar Chart & Prioritization Matrix */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            <div className="min-h-[400px]">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 print:grid-cols-2 print:gap-4 print:mb-4">
+            <div className="min-h-[400px] print:min-h-[300px] print:border print:border-slate-200 print:rounded-xl">
               <ClauseAnalysisChart data={record} />
             </div>
-            <div className="min-h-[400px]">
+            <div className="min-h-[400px] print:min-h-[300px] print:border print:border-slate-200 print:rounded-xl">
               <PrioritizationChart data={record} />
             </div>
           </div>
 
-          {/* AI Analysis Section */}
-          <div className="mt-10">
+          {/* AI Analysis Section (Force page break before this if needed) */}
+          <div className="mt-10 print:break-before-page">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
                 <Sparkles className="w-6 h-6 text-blue-600" />
                 Strategic AI Analysis
               </h2>
-              <span className="text-[10px] uppercase tracking-wider font-bold text-white bg-slate-900 px-3 py-1.5 rounded-full shadow-lg shadow-slate-200">
+              <span className="text-[10px] uppercase tracking-wider font-bold text-white bg-slate-900 px-3 py-1.5 rounded-full shadow-lg shadow-slate-200 print:text-slate-900 print:bg-transparent print:shadow-none print:border print:border-slate-900">
                 Gemini 2.5 Flash
               </span>
             </div>

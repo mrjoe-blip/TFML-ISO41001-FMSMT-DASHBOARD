@@ -36,3 +36,20 @@
     transform: translateY(0);
   }
 }
+
+/* Print specific overrides */
+@media print {
+  @page {
+    margin: 1cm;
+    size: A4;
+  }
+  
+  body {
+    background: white;
+  }
+
+  /* Hide scrollbars in print */
+  ::-webkit-scrollbar {
+    display: none;
+  }
+}

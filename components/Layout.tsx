@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, Menu, X, ExternalLink, ShieldCheck } from 'lucide-react';
+import { Menu, X, ExternalLink, ShieldCheck } from 'lucide-react';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -28,9 +28,9 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onNavigat
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
-      {/* Secure Header with Glassmorphism */}
+      {/* Secure Header with Glassmorphism - Hidden when printing */}
       <header 
-        className={`fixed top-0 w-full z-50 transition-all duration-300 ${
+        className={`fixed top-0 w-full z-50 transition-all duration-300 print:hidden ${
           scrolled || isMobileMenuOpen 
             ? 'bg-white/95 backdrop-blur-md shadow-sm border-b border-slate-200' 
             : 'bg-white/80 backdrop-blur-sm border-b border-transparent'
@@ -43,17 +43,12 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onNavigat
             className="flex items-center gap-3 cursor-pointer group select-none" 
             onClick={() => onNavigate('dashboard')}
           >
-            <div className="relative">
-              <div className="absolute inset-0 bg-blue-600 rounded-lg blur opacity-20 group-hover:opacity-40 transition-opacity"></div>
-              <div className="relative bg-blue-600 p-2 rounded-lg shadow-sm group-hover:bg-blue-700 transition-colors">
-                <LayoutDashboard className="w-5 h-5 text-white" />
-              </div>
-            </div>
-            <div className="flex flex-col">
-              <h1 className="text-lg md:text-xl font-bold text-slate-900 tracking-tight leading-none">TFML Diagnostic</h1>
+            <img src="/iso-fm-logo.png" alt="ISO FM Academy" className="h-10 w-auto object-contain" />
+            <div className="hidden sm:flex flex-col border-l border-slate-300 pl-3">
+              <h1 className="text-sm font-bold text-slate-900 tracking-tight leading-none">Maturity Diagnostic</h1>
               <div className="flex items-center gap-1 mt-0.5">
                 <ShieldCheck className="w-3 h-3 text-emerald-500" />
-                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">ISO 41001 Certified Tool</span>
+                <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">ISO 41001 Certified</span>
               </div>
             </div>
           </div>
@@ -136,21 +131,22 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onNavigat
       </header>
       
       {/* Main Content Area with top padding for fixed header */}
-      <main className="flex-grow w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 mt-16 space-y-8">
+      <main className="flex-grow w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 mt-16 space-y-8 print:mt-0 print:px-0">
         {children}
       </main>
 
-      <footer className="bg-slate-900 text-slate-400 py-12 mt-auto border-t border-slate-800">
+      {/* Footer - Hidden when printing */}
+      <footer className="bg-slate-900 text-slate-400 py-12 mt-auto border-t border-slate-800 print:hidden">
         <div className="max-w-7xl mx-auto px-4 flex flex-col items-center justify-center text-center">
           <div className="flex items-center gap-2 mb-4 text-white">
-            <LayoutDashboard className="w-5 h-5" />
-            <span className="font-bold text-lg">TFML Diagnostic</span>
+            <img src="/iso-fm-logo.png" alt="ISO FM Academy" className="h-8 w-auto brightness-0 invert opacity-80" />
+            <span className="font-bold text-lg">Maturity Diagnostic</span>
           </div>
           <p className="text-sm font-medium text-slate-300 max-w-md mx-auto mb-6">
             Empowering Facility Management professionals with AI-driven ISO 41001 maturity assessments.
           </p>
           <p className="text-xs opacity-50">
-            © {new Date().getFullYear()} TFML Diagnostic Tool. All rights reserved.
+            © {new Date().getFullYear()} ISO FM Academy. All rights reserved.
           </p>
         </div>
       </footer>
