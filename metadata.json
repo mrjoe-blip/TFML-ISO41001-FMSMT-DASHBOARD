@@ -1,0 +1,5 @@
+{
+  "name": "TFML Maturity Diagnostic Dashboard",
+  "description": "Interactive dashboard for ISO 41001 Facility Management AI Maturity analysis, featuring dynamic charts and AI-driven insights.",
+  "requestFramePermissions": []
+}
