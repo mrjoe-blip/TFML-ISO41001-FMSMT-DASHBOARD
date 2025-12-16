@@ -8,6 +8,30 @@ interface AnalysisSectionProps {
 }
 
 export const AnalysisSection: React.FC<AnalysisSectionProps> = ({ analysis, loading }) => {
+  
+  // Helper to render text with clickable links
+  const renderTextWithLinks = (text: string) => {
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    const parts = text.split(urlRegex);
+    
+    return parts.map((part, index) => {
+      if (part.match(urlRegex)) {
+        return (
+          <a 
+            key={index} 
+            href={part} 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className="text-blue-600 hover:underline break-all"
+          >
+            {part}
+          </a>
+        );
+      }
+      return part;
+    });
+  };
+
   // Helper to format text that might come as bullet points or paragraphs
   const formatContent = (text: string) => {
     return text.split('\n').map((line, i) => {
@@ -15,13 +39,14 @@ export const AnalysisSection: React.FC<AnalysisSectionProps> = ({ analysis, load
       if (!cleanLine) return null;
       // Heuristic for bullet points
       if (cleanLine.startsWith('-') || cleanLine.startsWith('•') || cleanLine.match(/^\d+\./)) {
+        const content = cleanLine.replace(/^[-•\d\.]+\s*/, '');
         return (
           <li key={i} className="mb-2 pl-2 border-l-2 border-transparent hover:border-current/30 transition-colors">
-            {cleanLine.replace(/^[-•\d\.]+\s*/, '')}
+            {renderTextWithLinks(content)}
           </li>
         );
       }
-      return <p key={i} className="mb-2">{cleanLine}</p>;
+      return <p key={i} className="mb-2">{renderTextWithLinks(cleanLine)}</p>;
     });
   };
 

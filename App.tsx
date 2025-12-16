@@ -10,7 +10,7 @@ import { IsoStandardsView } from './components/IsoStandardsView';
 import { fetchRecordById, fetchDemoRecord } from './services/dataService';
 import { generateAnalysis } from './services/geminiService';
 import { MaturityRecord, AnalysisResult, LoadingState } from './types';
-import { Loader2, Search, AlertCircle, FileQuestion } from 'lucide-react';
+import { Loader2, Search, AlertCircle, FileQuestion, Mail } from 'lucide-react';
 
 const App: React.FC = () => {
   const [record, setRecord] = useState<MaturityRecord | null>(null);
@@ -182,9 +182,14 @@ const App: React.FC = () => {
           <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
               <h2 className="text-2xl font-bold text-slate-800 break-words">{record.organization}</h2>
-              <div className="flex flex-col md:flex-row md:gap-4 mt-1 text-sm text-slate-500">
-                <span>{record.respondentName}</span>
-                <span className="hidden md:inline">•</span>
+              <div className="flex flex-col md:flex-row md:items-center md:gap-4 mt-2 text-sm text-slate-500">
+                <span className="font-medium">{record.respondentName}</span>
+                <span className="hidden md:inline text-slate-300">•</span>
+                <a href={`mailto:${record.respondentEmail}`} className="flex items-center gap-1 hover:text-blue-600 transition-colors">
+                  <Mail className="w-3 h-3" />
+                  {record.respondentEmail}
+                </a>
+                <span className="hidden md:inline text-slate-300">•</span>
                 <span>{record.submissionDate}</span>
               </div>
             </div>
