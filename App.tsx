@@ -59,10 +59,13 @@ const App: React.FC = () => {
     } catch (e: any) {
       console.error(e);
       setLoadingState(LoadingState.ERROR);
+      
       if (e.message && e.message.includes("DEPLOYMENT_CONFIG_ERROR")) {
         setErrorMessage("Configuration Error: The Google Script URL is invalid. Please check your Vercel Environment Variables.");
       } else if (e.message && e.message.includes("INVALID_RESPONSE")) {
         setErrorMessage("Data Error: Received invalid response from the server. Ensure the Script deployment is set to 'Anyone'.");
+      } else if (e.message && e.message.includes("PERMISSION_ERROR")) {
+        setErrorMessage("Permission Error: The Google Script is likely set to 'Only Me' or 'Anyone with Google Account'. Please redeploy as 'Anyone'.");
       } else {
         setErrorMessage("An unexpected error occurred connecting to the database. Please check your internet connection.");
       }
