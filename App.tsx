@@ -16,6 +16,7 @@ const App: React.FC = () => {
   const [record, setRecord] = useState<MaturityRecord | null>(null);
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [loadingState, setLoadingState] = useState<LoadingState>(LoadingState.IDLE);
+  const [errorMessage, setErrorMessage] = useState<string>("");
   const [analysisLoading, setAnalysisLoading] = useState<boolean>(false);
   const [inputId, setInputId] = useState('');
   const [currentView, setCurrentView] = useState('dashboard');
@@ -41,6 +42,8 @@ const App: React.FC = () => {
   const loadData = async (id: string) => {
     setLoadingState(LoadingState.LOADING);
     setAnalysis(null);
+    setErrorMessage("");
+    
     try {
       const data = await fetchRecordById(id);
       if (data) {
@@ -53,9 +56,14 @@ const App: React.FC = () => {
       } else {
         setLoadingState(LoadingState.NOT_FOUND);
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
       setLoadingState(LoadingState.ERROR);
+      if (e.message && e.message.includes("DEPLOYMENT_CONFIG_ERROR")) {
+        setErrorMessage("Deployment Error: The Google Script URL is invalid. Please check your Vercel Environment Variables.");
+      } else {
+        setErrorMessage("An unexpected error occurred connecting to the database.");
+      }
     }
   };
 
@@ -147,7 +155,7 @@ const App: React.FC = () => {
             </div>
             <h3 className="text-lg font-bold text-red-800 mb-2">System Error</h3>
             <p className="text-red-700 mb-4 text-sm">
-              An unexpected error occurred. Please try again later.
+              {errorMessage || "An unexpected error occurred. Please try again later."}
             </p>
             <button 
               onClick={() => {

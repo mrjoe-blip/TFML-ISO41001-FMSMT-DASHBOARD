@@ -11,27 +11,42 @@ export const fetchRecordById = async (id: string): Promise<MaturityRecord | null
     return fetchDemoRecord();
   }
 
-  try {
-    // Append the ID parameter to the Web App URL
-    const response = await fetch(`${GAS_API_URL}?id=${id}`);
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+  // We do NOT use a try-catch here so that network/server errors propagate to the UI
+  // causing the 'System Error' state rather than 'Report Not Found'.
+  
+  // Append the ID parameter to the Web App URL
+  const response = await fetch(`${GAS_API_URL}?id=${id}`);
+  
+  if (!response.ok) {
+    // Check if it's the specific Google Script Deployment error
+    if (response.status === 404) {
+      const text = await response.text();
+      if (text.includes("DEPLOYMENT_NOT_FOUND") || text.includes("Google Drive")) {
+         throw new Error("DEPLOYMENT_CONFIG_ERROR: The Google Script Deployment URL is invalid or deleted. Please check VITE_GOOGLE_SCRIPT_URL.");
+      }
     }
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
 
-    const data = await response.json();
+  const contentType = response.headers.get("content-type");
+  if (!contentType || !contentType.includes("application/json")) {
+    // This handles the case where Google returns an HTML error page (like 404) with a 200 OK status (rare but possible with some redirects)
+    // or if the script crashes and returns HTML error info.
+    const text = await response.text();
+    console.error("Received non-JSON response:", text);
+    throw new Error("INVALID_RESPONSE: Received HTML instead of JSON. Check the API URL.");
+  }
 
-    if (data.error) {
-      console.error("API Error:", data.error);
-      return null;
-    }
+  const data = await response.json();
 
-    return data as MaturityRecord;
-
-  } catch (error) {
-    console.error("Failed to fetch record:", error);
+  if (data.error) {
+    // If the API explicitly returns an error (like "ID not found"), log it
+    console.error("API Error:", data.error);
+    // Return null to signify "Record not found" logic
     return null;
   }
+
+  return data as MaturityRecord;
 };
 
 export const fetchDemoRecord = async (): Promise<MaturityRecord> => {
