@@ -1,7 +1,7 @@
 import { MaturityRecord } from '../types';
 
 // The URL comes from the environment variable (Vercel)
-const GAS_API_URL = (import.meta as any).env.VITE_GOOGLE_SCRIPT_URL;
+const GAS_API_URL = process.env.VITE_GOOGLE_SCRIPT_URL;
 
 export const fetchRecordById = async (id: string): Promise<MaturityRecord | null> => {
   // Fallback for development/demo if no API URL is set

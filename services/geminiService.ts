@@ -1,15 +1,9 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { MaturityRecord, AnalysisResult } from "../types";
 
-// Declare process to avoid TypeScript errors since we are using process.env
-declare const process: {
-  env: {
-    API_KEY?: string;
-  }
-};
-
 export const generateAnalysis = async (record: MaturityRecord): Promise<AnalysisResult> => {
   // The API key must be obtained exclusively from the environment variable process.env.API_KEY
+  // Note: We use process.env here because it is polyfilled by vite.config.ts define: { 'process.env': process.env }
   if (!process.env.API_KEY) {
     console.warn("No API Key found. Returning mock analysis.");
     return {
