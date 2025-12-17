@@ -10,7 +10,7 @@ import { IsoStandardsView } from './components/IsoStandardsView';
 import { fetchRecordById, fetchDemoRecord } from './services/dataService';
 import { generateAnalysis } from './services/geminiService';
 import { MaturityRecord, AnalysisResult, LoadingState } from './types';
-import { Loader2, AlertCircle, FileQuestion, Mail, Calendar, Building2, Sparkles, WifiOff, Lock, ArrowRight, Share2, Printer, Check } from 'lucide-react';
+import { Loader2, AlertCircle, FileQuestion, Mail, Calendar, Building2, Sparkles, WifiOff, Lock, ArrowRight, Share2, Printer, Check, KeyRound } from 'lucide-react';
 
 const App: React.FC = () => {
   const [record, setRecord] = useState<MaturityRecord | null>(null);
@@ -73,10 +73,16 @@ const App: React.FC = () => {
     }
   };
 
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Enforce 4-character limit and alphanumeric uppercase format
+    const value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4);
+    setInputId(value);
+  };
+
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (inputId.trim()) {
-      window.location.hash = `/report?id=${inputId.trim()}`;
+    if (inputId.length === 4) {
+      window.location.hash = `/report?id=${inputId}`;
     }
   };
 
@@ -100,28 +106,29 @@ const App: React.FC = () => {
               <img src="/iso-fm-logo.png" alt="ISO FM Academy" className="h-20 w-auto object-contain" />
             </div>
 
-            <h2 className="text-2xl font-bold text-slate-800 mb-2">Respondent Login</h2>
+            <h2 className="text-2xl font-bold text-slate-800 mb-2">Secure Report Access</h2>
             <p className="text-slate-500 mb-8 text-sm leading-relaxed">
-              Please enter the unique <span className="font-mono font-bold text-slate-700 bg-slate-100 px-1 py-0.5 rounded">Responder ID</span> provided in your dashboard email to access your diagnostic report.
+              Please enter the <span className="font-bold text-slate-700">4-character Access Code</span> sent to your email address to view your maturity diagnostic report.
             </p>
 
             <form onSubmit={handleLogin} className="flex flex-col gap-4">
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-slate-400" />
+                  <KeyRound className="h-5 w-5 text-slate-400" />
                 </div>
                 <input 
                   type="text" 
-                  placeholder="Enter Responder ID" 
-                  className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800 placeholder-slate-400 transition-all"
+                  maxLength={4}
+                  placeholder="e.g. A9X2" 
+                  className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800 placeholder-slate-300 transition-all font-mono text-lg tracking-[0.2em] uppercase text-center"
                   value={inputId}
-                  onChange={(e) => setInputId(e.target.value)}
+                  onChange={handleInputChange}
                   autoFocus
                 />
               </div>
               <button 
                 type="submit" 
-                disabled={!inputId.trim()}
+                disabled={inputId.length !== 4}
                 className="group bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white text-base font-semibold py-3 rounded-xl transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2"
               >
                 Access Report
@@ -130,7 +137,7 @@ const App: React.FC = () => {
             </form>
 
             <div className="mt-8 pt-6 border-t border-slate-100">
-               <button onClick={() => window.location.hash = '/report?id=user_1'} className="text-xs text-slate-400 hover:text-blue-600 underline decoration-slate-300 underline-offset-4 transition-colors">
+               <button onClick={() => window.location.hash = '/report?id=DEMO'} className="text-xs text-slate-400 hover:text-blue-600 underline decoration-slate-300 underline-offset-4 transition-colors">
                  View Demo Report
                </button>
             </div>
@@ -149,7 +156,7 @@ const App: React.FC = () => {
              <Loader2 className="w-12 h-12 text-blue-600 animate-spin" />
           </div>
           <h3 className="text-xl font-bold text-slate-800">Authenticating...</h3>
-          <p className="text-slate-400 text-sm mt-2">Verifying Responder ID and retrieving data</p>
+          <p className="text-slate-400 text-sm mt-2">Verifying Access Code and retrieving data</p>
         </div>
       );
     }
@@ -163,14 +170,14 @@ const App: React.FC = () => {
                 <FileQuestion className="w-8 h-8 text-orange-500" />
               </div>
             </div>
-            <h3 className="text-xl font-bold text-orange-900 mb-2">ID Not Found</h3>
+            <h3 className="text-xl font-bold text-orange-900 mb-2">Invalid Access Code</h3>
             <p className="text-orange-700 mb-6 text-sm leading-relaxed">
-              We couldn't locate a report for ID: <br/>
-              <span className="font-mono bg-white px-2 py-0.5 rounded border border-orange-200 font-bold mt-2 inline-block text-base">
-                {new URLSearchParams(window.location.hash.split('?')[1]).get('id') || 'unknown'}
+              We couldn't locate a report for Code: <br/>
+              <span className="font-mono bg-white px-3 py-1 rounded border border-orange-200 font-bold mt-2 inline-block text-lg tracking-widest">
+                {new URLSearchParams(window.location.hash.split('?')[1]).get('id') || 'UNKNOWN'}
               </span>
             </p>
-            <p className="text-xs text-orange-600 mb-6">Please check the ID in your email and try again.</p>
+            <p className="text-xs text-orange-600 mb-6">Please check the 4-character code in your email and try again.</p>
             <button 
               onClick={() => {
                 setLoadingState(LoadingState.IDLE);

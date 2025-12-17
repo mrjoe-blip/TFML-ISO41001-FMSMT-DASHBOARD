@@ -5,8 +5,8 @@ const GAS_API_URL = process.env.VITE_GOOGLE_SCRIPT_URL;
 
 export const fetchRecordById = async (id: string): Promise<MaturityRecord | null> => {
   // If no URL is configured, or if requesting the specific demo user, return mock data.
-  if (!GAS_API_URL || id === 'user_1') {
-    if (id !== 'user_1' && (!GAS_API_URL || GAS_API_URL.trim() === '')) {
+  if (!GAS_API_URL || id === 'DEMO') {
+    if (id !== 'DEMO' && (!GAS_API_URL || GAS_API_URL.trim() === '')) {
       console.warn("VITE_GOOGLE_SCRIPT_URL not set. Using mock data.");
     }
     return fetchDemoRecord();
@@ -93,7 +93,7 @@ export const fetchDemoRecord = async (): Promise<MaturityRecord> => {
   // Simulate network delay
   await new Promise(resolve => setTimeout(resolve, 600));
   return {
-    id: 'user_1',
+    id: 'DEMO',
     respondentName: 'Demo User',
     respondentEmail: 'demo@example.com',
     organization: 'Demo Organization',

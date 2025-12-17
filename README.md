@@ -7,7 +7,7 @@ A comprehensive Facility Management maturity assessment dashboard powered by ISO
 - **ISO 41001 Analysis**: Visualizes maturity across Planning, Support, Operation, and Performance clauses.
 - **AI-Driven Insights**: Uses Google Gemini 2.5 Flash to generate real-time executive summaries and gap analysis.
 - **Interactive Charts**: Radar charts, gauges, and scatter plots built with Recharts.
-- **Secure Authentication**: Simple ID-based login system for respondents.
+- **Secure Authentication**: Uses unique 4-character alphanumeric Access Codes for respondent privacy.
 - **Print-Ready**: Optimized CSS for generating PDF reports.
 
 ## 🛠️ Setup & Installation
