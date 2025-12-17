@@ -1,13 +1,13 @@
 /**
  * ===========================================================================
- * ISO FM DIAGNOSTIC BACKEND - V7 (Fixes & Rich Report)
+ * ISO FM DIAGNOSTIC BACKEND - V8 (Resilient API & Stable Assets)
  * ===========================================================================
  * FEATURES:
  * 1. Generates 4-Char Access Code (Required for Dashboard Login).
  * 2. Runs Gemini AI Analysis on Form Submit.
- * 3. Sends DETAILED HTML Email with Analysis (Restored).
+ * 3. Sends DETAILED HTML Email with Analysis.
  * 4. Serves Data to Dashboard via API.
- * 5. Fixed 'getUi' error on triggers.
+ * 5. Robust 503 Error Handling (Exponential Backoff).
  *
  * INSTRUCTIONS:
  * 1. Update 'DASHBOARD_BASE_URL' to your Vercel App URL.
@@ -22,7 +22,7 @@ const MODEL_NAME = 'gemini-2.5-flash';
 
 // !!! VERIFY THIS URL !!!
 // Ensure NO trailing slash here to avoid double slashes later.
-const DASHBOARD_BASE_URL = "https://tfml-iso-41001-fmsmt-dashboard.vercel.app"; 
+const DASHBOARD_BASE_URL = "https://tfml-iso-41001-fmsmt-dashboard.vercel.app/"; 
 
 const SHEET_NAME = "Form Responses 1"; 
 const ID_COLUMN_HEADER = "Respondent ID";
@@ -33,14 +33,11 @@ const ID_COLUMN_HEADER = "Respondent ID";
 
 /**
  * Safely shows an alert if the UI environment is available.
- * If the UI unavailable (e.g., running from a trigger), it logs the message instead.
- * @param {string} message The message to alert.
  */
 function safeAlert(message) {
   try {
     SpreadsheetApp.getUi().alert(message);
   } catch (e) {
-    // Fails silently in non-UI context (like onFormSubmit trigger)
     Logger.log(`UI Alert suppressed: ${message}`);
   }
 }
@@ -55,13 +52,12 @@ function onOpen() {
 
 /**
  * 1. SETUP: Creates necessary columns if missing.
- * Added 'silent' parameter to prevent 'getUi' errors during automatic triggers.
  */
 function setupSheet(silent = false) {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
   if (!sheet) {
     const msg = `Sheet "${SHEET_NAME}" not found.`;
-    if (!silent) safeAlert(msg); // Use safeAlert
+    if (!silent) safeAlert(msg);
     Logger.log(msg);
     return;
   }
@@ -100,7 +96,7 @@ function setupSheet(silent = false) {
   }
 
   if (!silent) {
-    safeAlert('Columns checked/created successfully.'); // Use safeAlert
+    safeAlert('Columns checked/created successfully.');
   } else {
     Logger.log('Columns checked/created successfully.');
   }
@@ -121,10 +117,8 @@ function onFormSubmitTrigger(e) {
 
     // --- A. Handle ID Generation (Critical for Dashboard) ---
     let idColIndex = headers.indexOf(ID_COLUMN_HEADER);
-    // If ID column missing (shouldn't happen if setup run), find it dynamically or append
     if (idColIndex === -1) {
-      setupSheet(true); // Pass 'true' to run silently without UI alerts
-      // Re-fetch headers to get new column index
+      setupSheet(true); 
       const updatedHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
       idColIndex = updatedHeaders.indexOf(ID_COLUMN_HEADER);
     }
@@ -235,14 +229,10 @@ function doGet(e) {
 // HELPERS
 // ====================================================================
 
-/**
- * Extracts the most likely email address and name from the form submission data.
- */
 function extractEmailAndName(rowData) {
   let email = '';
   let name = '';
   
-  // 1. Check for standard/common email keys
   const standardEmailKeys = ['Email Address', 'Email', 'Your Email', 'Contact Email', 'email'];
   for (const key of standardEmailKeys) {
     if (rowData[key] && rowData[key][0] && String(rowData[key][0]).includes('@')) {
@@ -251,7 +241,6 @@ function extractEmailAndName(rowData) {
     }
   }
 
-  // 2. Check for standard/common name keys
   const standardNameKeys = ['Name', 'Full Name', 'Your Name', 'Respondent Name', 'name'];
   for (const key of standardNameKeys) {
     if (rowData[key] && rowData[key][0] && String(rowData[key][0]).trim() !== '') {
@@ -260,7 +249,6 @@ function extractEmailAndName(rowData) {
     }
   }
 
-  // 3. Fallback search
   if (!email) {
     const keys = Object.keys(rowData);
     for (const key of keys) {
@@ -272,10 +260,7 @@ function extractEmailAndName(rowData) {
     }
   }
 
-  return { 
-    email: email, 
-    name: name || "Client" 
-  };
+  return { email: email, name: name || "Client" };
 }
 
 function callGeminiForAnalysis(formData) {
@@ -286,10 +271,11 @@ function callGeminiForAnalysis(formData) {
   }
 
   const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${apiKey}`;
-  const MAX_RETRIES = 3;
-  let delay = 2000;
+  
+  // INCREASED RETRIES to handle 503 Service Unavailable errors
+  const MAX_RETRIES = 5; 
+  let delay = 2000; // Start with 2 seconds
 
-  // Strict Schema for Data Consistency
   const schema = {
     type: "OBJECT",
     properties: {
@@ -352,9 +338,11 @@ function callGeminiForAnalysis(formData) {
         Logger.log(`Gemini API Error (Attempt ${attempt}): ${responseCode}`);
       }
 
+      // Retry Logic with Backoff
       if (attempt < MAX_RETRIES) {
+        Logger.log(`Waiting ${delay}ms before retry...`);
         Utilities.sleep(delay);
-        delay *= 2;
+        delay *= 2; // Exponential backoff: 2s, 4s, 8s, 16s
       }
       
     } catch (e) {
@@ -381,13 +369,10 @@ function updateSheetWithAnalysis(sheet, row, analysis, startColIndex) {
     analysis.clauseScores.operationScore,
     analysis.clauseScores.performanceScore
   ];
-  // +1 because sheet is 1-based, startColIndex is 0-based
   sheet.getRange(row, startColIndex + 1, 1, data.length).setValues([data]);
 }
 
-// RESTORED DETAILED EMAIL REPORT
 function sendEmailReport(email, name, code, analysis) {
-  // Corrected Dashboard URL construction (removed potential for double slashes)
   const dashboardLink = `${DASHBOARD_BASE_URL}/#/report?id=${code}`;
   
   const subject = `Your ISO 41001:2018 FM Assessment - Maturity Report: ${analysis.analysisResult}`;
@@ -403,9 +388,9 @@ function sendEmailReport(email, name, code, analysis) {
             Facilities Management Assessment Report
         </h2>
         
-        <!-- FIXED LOGO URL: Using raw.githubusercontent.com for reliable email rendering -->
+        <!-- FIXED LOGO URL: Using 'main' branch for stability -->
         <div style="text-align: center; margin-bottom: 20px;">
-            <img src="https://raw.githubusercontent.com/mrjoe-blip/TFML-ISO41001-FMSMT-DASHBOARD/99d46a833cb2e3ba591e71a26c4a452d99779266/public/iso-fm-logo.png" 
+            <img src="https://raw.githubusercontent.com/mrjoe-blip/TFML-ISO41001-FMSMT-DASHBOARD/main/public/iso-fm-logo.png" 
                  alt="ISOFM Academy Logo" 
                  width="150" 
                  style="max-width: 150px; height: auto; border-radius: 4px; display: block; margin: 0 auto;">
@@ -488,7 +473,7 @@ function runManualAnalysis() {
   const lastRow = sheet.getLastRow();
   
   if (lastRow <= 1) {
-    safeAlert("No data found."); // Use safeAlert
+    safeAlert("No data found."); 
     return;
   }
 
@@ -501,7 +486,7 @@ function runManualAnalysis() {
     range: sheet.getRange(lastRow, 1)
   });
   
-  safeAlert("Manual run complete. Check email and sheet."); // Use safeAlert
+  safeAlert("Manual run complete. Check email and sheet."); 
 }
 
 function jsonResponse(data, status = 200) {

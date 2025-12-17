@@ -36,6 +36,9 @@ export const fetchRecordById = async (id: string): Promise<MaturityRecord | null
     const timestamp = new Date().getTime();
     const fetchUrl = `${apiUrl}?id=${sanitizedId}&t=${timestamp}`;
     
+    // Explicitly log where we are connecting to assist debugging
+    console.log("Fetching from:", fetchUrl);
+
     const response = await fetch(fetchUrl, {
       method: 'GET',
       mode: 'cors', 
@@ -58,7 +61,7 @@ export const fetchRecordById = async (id: string): Promise<MaturityRecord | null
       const text = await response.text();
       // Detect Google Auth HTML response (Permission Error)
       if (text.includes("<!DOCTYPE html>") || text.includes("accounts.google.com") || text.includes("Google Drive")) {
-        console.error("Received Google Login HTML instead of JSON. Permissions Error.");
+        console.error("Received Google Login HTML instead of JSON. This is a deployment permission error.");
         throw new Error("PERMISSION_ERROR");
       }
       throw new Error("INVALID_RESPONSE");

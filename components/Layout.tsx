@@ -43,7 +43,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onNavigat
             className="flex items-center gap-3 cursor-pointer group select-none" 
             onClick={() => onNavigate('dashboard')}
           >
-            <img src="https://raw.githubusercontent.com/mrjoe-blip/TFML-ISO41001-FMSMT-DASHBOARD/99d46a833cb2e3ba591e71a26c4a452d99779266/public/iso-fm-logo.png" alt="ISO FM Academy" className="h-10 w-auto object-contain" />
+            <img src="https://raw.githubusercontent.com/mrjoe-blip/TFML-ISO41001-FMSMT-DASHBOARD/main/public/iso-fm-logo.png" alt="ISO FM Academy" className="h-10 w-auto object-contain" />
             <div className="hidden sm:flex flex-col border-l border-slate-300 pl-3">
               <h1 className="text-sm font-bold text-slate-900 tracking-tight leading-none">Maturity Diagnostic</h1>
               <div className="flex items-center gap-1 mt-0.5">
@@ -139,7 +139,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onNavigat
       <footer className="bg-slate-900 text-slate-400 py-12 mt-auto border-t border-slate-800 print:hidden">
         <div className="max-w-7xl mx-auto px-4 flex flex-col items-center justify-center text-center">
           <div className="flex items-center gap-2 mb-4 text-white">
-            <img src="https://raw.githubusercontent.com/mrjoe-blip/TFML-ISO41001-FMSMT-DASHBOARD/99d46a833cb2e3ba591e71a26c4a452d99779266/public/iso-fm-logo.png" alt="ISO FM Academy" className="h-8 w-auto brightness-0 invert opacity-80" />
+            <img src="https://raw.githubusercontent.com/mrjoe-blip/TFML-ISO41001-FMSMT-DASHBOARD/main/public/iso-fm-logo.png" alt="ISO FM Academy" className="h-8 w-auto brightness-0 invert opacity-80" />
             <span className="font-bold text-lg">Maturity Diagnostic</span>
           </div>
           <p className="text-sm font-medium text-slate-300 max-w-md mx-auto mb-6">

@@ -10,7 +10,7 @@ import { IsoStandardsView } from './components/IsoStandardsView';
 import { fetchRecordById, fetchDemoRecord } from './services/dataService';
 import { generateAnalysis } from './services/geminiService';
 import { MaturityRecord, AnalysisResult, LoadingState } from './types';
-import { Loader2, AlertCircle, FileQuestion, Mail, Calendar, Building2, Sparkles, WifiOff, Lock, ArrowRight, Share2, Printer, Check, KeyRound } from 'lucide-react';
+import { Loader2, AlertCircle, FileQuestion, Mail, Calendar, Building2, Sparkles, WifiOff, Lock, ArrowRight, Share2, Printer, Check, KeyRound, Settings } from 'lucide-react';
 
 const App: React.FC = () => {
   const [record, setRecord] = useState<MaturityRecord | null>(null);
@@ -62,13 +62,13 @@ const App: React.FC = () => {
       setLoadingState(LoadingState.ERROR);
       
       if (e.message && e.message.includes("DEPLOYMENT_CONFIG_ERROR")) {
-        setErrorMessage("Configuration Error: The Google Script URL is invalid. Please check your Vercel Environment Variables.");
+        setErrorMessage("Configuration Error: The Google Script URL is invalid or malformed. Check Vercel Environment Variables.");
       } else if (e.message && e.message.includes("INVALID_RESPONSE")) {
-        setErrorMessage("Data Error: Received invalid response from the server. Ensure the Script deployment is set to 'Anyone'.");
+        setErrorMessage("Data Error: The Google Script returned an invalid response. Ensure the script is deployed as a 'Web App'.");
       } else if (e.message && e.message.includes("PERMISSION_ERROR")) {
-        setErrorMessage("Permission Error: The Google Script is likely set to 'Only Me' or 'Anyone with Google Account'. Please redeploy as 'Anyone'.");
+        setErrorMessage("PERMISSION_ERROR");
       } else {
-        setErrorMessage("An unexpected error occurred connecting to the database. Please check your internet connection.");
+        setErrorMessage("Connection Error: Unable to reach the database. Please check your internet connection.");
       }
     }
   };
@@ -103,7 +103,7 @@ const App: React.FC = () => {
           <div className="bg-white p-8 md:p-12 rounded-2xl shadow-2xl shadow-slate-200/50 border border-slate-100 max-w-lg w-full text-center">
             
             <div className="flex justify-center mb-8">
-              <img src="https://raw.githubusercontent.com/mrjoe-blip/TFML-ISO41001-FMSMT-DASHBOARD/99d46a833cb2e3ba591e71a26c4a452d99779266/public/iso-fm-logo.png" alt="ISO FM Academy" className="h-20 w-auto object-contain" />
+              <img src="https://raw.githubusercontent.com/mrjoe-blip/TFML-ISO41001-FMSMT-DASHBOARD/main/public/iso-fm-logo.png" alt="ISO FM Academy" className="h-20 w-auto object-contain" />
             </div>
 
             <h2 className="text-2xl font-bold text-slate-800 mb-2">Secure Report Access</h2>
@@ -193,18 +193,38 @@ const App: React.FC = () => {
     }
 
     if (loadingState === LoadingState.ERROR) {
+      const isPermissionError = errorMessage === "PERMISSION_ERROR";
+
       return (
-        <div className="max-w-md mx-auto mt-20 px-4 text-center animate-fade-in">
+        <div className="max-w-lg mx-auto mt-20 px-4 text-center animate-fade-in">
           <div className="bg-red-50 p-8 rounded-2xl border border-red-100 shadow-sm">
             <div className="flex justify-center mb-4">
                <div className="p-3 bg-red-100 rounded-full">
-                <AlertCircle className="w-8 h-8 text-red-500" />
+                 {isPermissionError ? <Settings className="w-8 h-8 text-red-600" /> : <AlertCircle className="w-8 h-8 text-red-500" />}
               </div>
             </div>
-            <h3 className="text-xl font-bold text-red-900 mb-2">Access Error</h3>
-            <p className="text-red-700 mb-6 text-sm">
-              {errorMessage || "An unexpected error occurred. Please try again later."}
-            </p>
+            
+            <h3 className="text-xl font-bold text-red-900 mb-2">
+              {isPermissionError ? "Google Script Permission Error" : "Connection Error"}
+            </h3>
+            
+            <div className="text-red-700 mb-6 text-sm leading-relaxed">
+              {isPermissionError ? (
+                <div className="text-left bg-white p-4 rounded-lg border border-red-200 shadow-sm">
+                  <p className="font-bold mb-2">The Google Script is not accessible. To fix this:</p>
+                  <ol className="list-decimal pl-4 space-y-1 text-xs">
+                    <li>Go to your <strong>Google Apps Script</strong> editor.</li>
+                    <li>Click <strong>Deploy</strong> {'>'} <strong>Manage Deployments</strong>.</li>
+                    <li>Click the <strong>Edit (Pencil)</strong> icon.</li>
+                    <li>Set <strong>'Who has access'</strong> to <strong>'Anyone'</strong>.</li>
+                    <li>Click <strong>Deploy</strong>.</li>
+                  </ol>
+                </div>
+              ) : (
+                <p>{errorMessage}</p>
+              )}
+            </div>
+
             <div className="flex flex-col gap-3">
               <button 
                 onClick={() => {
