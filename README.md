@@ -23,20 +23,39 @@ cd tfml-diagnostic-tool
 npm install
 ```
 
-### 2. Environment Configuration
-Create a `.env` file in the root directory. **Do not commit this file.**
+### 2. Configure the Backend (Google Apps Script)
+**This is critical for ID generation and Emailing.**
+
+1.  Open your Google Sheet containing the diagnostic data.
+2.  Go to `Extensions` > `Apps Script`.
+3.  Open the file `google-apps-script.js` in this repository.
+4.  Copy the **entire content** of `google-apps-script.js`.
+5.  Paste it into the Google Apps Script editor (replace any existing code).
+6.  **Setup Trigger (For Emails):**
+    *   Click the Clock icon (Triggers) on the left sidebar.
+    *   Click "Add Trigger".
+    *   Choose function: `processFormSubmission`.
+    *   Event type: `On form submit`.
+    *   Save (You will need to authorize permissions).
+7.  **Deploy as API (For Dashboard):**
+    *   Click `Deploy` > `New Deployment`.
+    *   Select type: `Web App`.
+    *   Description: "Dashboard API".
+    *   Execute as: `Me`.
+    *   **Who has access: `Anyone`** (This is crucial! If you select "Only Me", the Vercel app will get a Network Error).
+    *   Click Deploy.
+    *   Copy the **Web App URL**.
+
+### 3. Environment Configuration
+Create a `.env` file in the root directory.
 
 ```env
 # Your Google Gemini API Key
 API_KEY=your_gemini_api_key_here
 
-# URL of your deployed Google Apps Script Web App
+# The Web App URL you copied in step 2
 VITE_GOOGLE_SCRIPT_URL=https://script.google.com/macros/s/.../exec
 ```
-
-### 3. Add Logo
-Ensure your logo file is placed at:
-`public/iso-fm-logo.png`
 
 ### 4. Run Locally
 ```bash
@@ -48,14 +67,10 @@ npm run dev
 This project is optimized for Vercel.
 
 1.  **Push to GitHub**: Commit your changes and push to a new GitHub repository.
-2.  **Import to Vercel**:
-    *   Go to your Vercel Dashboard.
-    *   Click "Add New..." -> "Project".
-    *   Select your GitHub repository.
+2.  **Import to Vercel**: Select your GitHub repository.
 3.  **Configure Environment Variables**:
-    *   In the Vercel deployment setup, look for "Environment Variables".
-    *   Add `API_KEY` with your production Gemini key.
-    *   Add `VITE_GOOGLE_SCRIPT_URL` with your Google Script URL.
+    *   `API_KEY`: Your Gemini API Key.
+    *   `VITE_GOOGLE_SCRIPT_URL`: Your Google Script Web App URL.
 4.  **Deploy**: Click "Deploy".
 
 ## 📂 Project Structure
@@ -64,10 +79,7 @@ This project is optimized for Vercel.
 - `/services`: API integration (Google Script & Gemini).
 - `/components`: UI components (Charts, Layouts).
 - `/public`: Static assets (Logo).
-
-## 🔒 Security Note
-
-This application uses a client-side build process. Environment variables defined in `vite.config.ts` are embedded into the browser bundle at build time. Ensure your Google Apps Script is deployed with access set to "Anyone" to avoid CORS issues.
+- `google-apps-script.js`: **Backend logic** (Copy to Google).
 
 ## 📄 License
 Private Property of ISO FM Academy.

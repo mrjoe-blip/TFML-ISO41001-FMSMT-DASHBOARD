@@ -13,18 +13,17 @@ export const fetchRecordById = async (id: string): Promise<MaturityRecord | null
   }
 
   try {
-    // Add timeout to prevent hanging requests
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000); // Increased to 15s for GAS latency
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
 
-    // CRITICAL FIX: 
-    // 1. method: 'GET' is required.
-    // 2. credentials: 'omit' prevents the browser from sending cookies, which confuses GAS CORS logic.
-    // 3. mode: 'cors' ensures we handle the response headers correctly.
-    const response = await fetch(`${GAS_API_URL}?id=${id}`, {
+    // Request Setup
+    // Ensure the ID is uppercase to match the backend logic
+    const sanitizedId = id.toUpperCase().trim();
+    
+    const response = await fetch(`${GAS_API_URL}?id=${sanitizedId}`, {
       method: 'GET',
       mode: 'cors', 
-      credentials: 'omit',
+      credentials: 'omit', 
       redirect: 'follow',
       signal: controller.signal,
     });
@@ -41,14 +40,11 @@ export const fetchRecordById = async (id: string): Promise<MaturityRecord | null
     const contentType = response.headers.get("content-type");
     if (!contentType || !contentType.includes("application/json")) {
       const text = await response.text();
-      
-      // Check for common Google Auth login page response (implies permission error)
-      if (text.includes("<!DOCTYPE html>") || text.includes("accounts.google.com")) {
-        console.error("Received HTML instead of JSON. This usually means the Google Script permissions are not set to 'Anyone'.");
+      // Detect Google Auth HTML response (Permission Error)
+      if (text.includes("<!DOCTYPE html>") || text.includes("accounts.google.com") || text.includes("Google Drive")) {
+        console.error("Received Google Login HTML instead of JSON. Permissions Error.");
         throw new Error("PERMISSION_ERROR");
       }
-      
-      console.error("Received non-JSON response:", text);
       throw new Error("INVALID_RESPONSE");
     }
 
@@ -56,41 +52,37 @@ export const fetchRecordById = async (id: string): Promise<MaturityRecord | null
 
     if (data.error) {
       console.error("API returned logic error:", data.error);
+      if (data.error === "Record not found") {
+        return null; // Triggers "Not Found" UI
+      }
       return null;
     }
 
     return data as MaturityRecord;
+
   } catch (error: any) {
     console.error("Data Fetch Error Details:", error);
 
-    // If it is a known configuration or permission error, throw it so the UI shows the specific error message
-    // instead of silently falling back to demo mode.
-    if (
-      error.message === "DEPLOYMENT_CONFIG_ERROR" || 
-      error.message === "INVALID_RESPONSE" ||
-      error.message === "PERMISSION_ERROR"
-    ) {
+    if (error.message === "DEPLOYMENT_CONFIG_ERROR" || 
+        error.message === "INVALID_RESPONSE" ||
+        error.message === "PERMISSION_ERROR") {
       throw error;
     }
 
-    // For generic network errors (TypeError: Failed to fetch), we still fall back, 
-    // but we log a very specific warning for the developer.
     if (error.name === 'TypeError' && error.message === 'Failed to fetch') {
-      console.warn("CORS ERROR DETECTED: Ensure your Google Script is deployed as 'Anyone' and VITE_GOOGLE_SCRIPT_URL is correct.");
+      console.error("CORS Error detected. The script is likely set to 'Only Me' or the URL is wrong.");
+      throw new Error("PERMISSION_ERROR");
     }
 
-    console.warn("Connection failed. Falling back to Demo Data.");
-    const demoData = await fetchDemoRecord();
-    return {
-      ...demoData,
-      respondentName: "Demo (Offline/Fallback)",
-      organization: "Connection Failed - Demo Mode"
-    };
+    if (error.name === 'AbortError') {
+       throw new Error("TIMEOUT_ERROR");
+    }
+
+    throw error;
   }
 };
 
 export const fetchDemoRecord = async (): Promise<MaturityRecord> => {
-  // Simulate network delay
   await new Promise(resolve => setTimeout(resolve, 600));
   return {
     id: 'DEMO',
@@ -99,7 +91,7 @@ export const fetchDemoRecord = async (): Promise<MaturityRecord> => {
     organization: 'Demo Organization',
     submissionDate: new Date().toISOString().split('T')[0],
     aiMaturityScore: 72,
-    aiMaturityLevel: 'Defined',
+    aiMaturityLevel: 'Optimized',
     clause6Score: 65,
     clause7Score: 80,
     clause8Score: 75,
