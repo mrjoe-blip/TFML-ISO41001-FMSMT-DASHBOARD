@@ -1,19 +1,14 @@
 /**
  * ===========================================================================
- * ISO FM DIAGNOSTIC BACKEND - V3 (FINAL AUTH FIX)
+ * ISO FM DIAGNOSTIC BACKEND - V4 (NO PDF, ROBUST ID)
  * ===========================================================================
  * 
- * PURPOSE: 
- * 1. Generates a 4-character secure ID (e.g., "A7X9") on Form Submit.
- * 2. Emails this ID to the user.
- * 3. Serves data to the React Dashboard via JSON.
- * 
  * INSTRUCTIONS:
- * 1. Overwrite your existing code with this file.
+ * 1. Paste this code into Extensions > Apps Script.
  * 2. Save.
- * 3. Run the 'setup' function once to grant permissions.
- * 4. Triggers: Add a trigger for 'onFormSubmitTrigger' (From spreadsheet -> On form submit).
- * 5. Deploy: New Deployment -> Web App -> Execute as Me -> Access: ANYONE.
+ * 3. IMPORTANT: Click Deploy > Manage Deployments > Edit (Pencil) > Version: New Version > Deploy.
+ *    (If you do not create a New Version, the changes will NOT take effect).
+ * 4. Ensure "Who has access" is set to "Anyone".
  */
 
 // --- CONFIGURATION ---
@@ -21,22 +16,19 @@ const SHEET_NAME = "Form Responses 1";
 const ID_COLUMN_HEADER = "Respondent ID";
 
 // COLUMN MAPPING (0-based Index)
-// Adjust these numbers if your form layout is different!
-// Column A=0, B=1, C=2, D=3, E=4...
-const EMAIL_COLUMN_INDEX = 1; // Assuming Column B is Email
-const NAME_COLUMN_INDEX = 2;  // Assuming Column C is Name
+// Column A=0, B=1, C=2...
+const EMAIL_COLUMN_INDEX = 1; 
+const NAME_COLUMN_INDEX = 2;
 
 /**
  * API ENDPOINT: Handles GET requests from the React Dashboard
  */
 function doGet(e) {
   const lock = LockService.getScriptLock();
-  lock.tryLock(10000); // Wait 10s for lock
+  lock.tryLock(10000); 
   
   try {
     const id = e.parameter.id;
-    
-    // 1. Validate Input
     if (!id) return jsonResponse({ error: "Missing ID parameter" });
 
     const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
@@ -45,15 +37,15 @@ function doGet(e) {
     const data = sheet.getDataRange().getValues();
     const headers = data[0];
     
-    // 2. Find ID Column
+    // Find ID Column
     const idColIndex = headers.indexOf(ID_COLUMN_HEADER);
     if (idColIndex === -1) return jsonResponse({ error: "ID Column missing in sheet" });
 
-    // 3. Search for the ID (Case Insensitive)
+    // Search for ID
     let record = null;
     const searchId = String(id).trim().toUpperCase();
 
-    // Iterate backwards to get latest submission if duplicates exist
+    // Search backwards for latest
     for (let i = data.length - 1; i >= 1; i--) {
       const rowId = String(data[i][idColIndex]).trim().toUpperCase();
       if (rowId === searchId) {
@@ -63,7 +55,6 @@ function doGet(e) {
     }
 
     if (!record) return jsonResponse({ error: "Record not found" }, 404);
-    
     return jsonResponse(record);
 
   } catch (err) {
@@ -74,52 +65,49 @@ function doGet(e) {
 }
 
 /**
- * TRIGGER: Runs automatically when a Form is submitted
+ * TRIGGER: Runs automatically on Form Submit
  */
 function onFormSubmitTrigger(e) {
   console.log("Processing Form Submission...");
   const lock = LockService.getScriptLock();
-  lock.waitLock(30000); // Wait up to 30s to prevent ID collisions
+  // Wait up to 30s to avoid collisions
+  lock.waitLock(30000); 
   
   try {
     const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
-    
-    // 1. Determine Row Index
-    // We use getLastRow() to be safe if event object is partial
     const rowIdx = sheet.getLastRow(); 
-    
-    // 2. Setup ID Column
     const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-    let idColIndex = headers.indexOf(ID_COLUMN_HEADER);
     
+    // 1. Ensure ID Column Exists
+    let idColIndex = headers.indexOf(ID_COLUMN_HEADER);
     if (idColIndex === -1) {
-      // Create column if it doesn't exist
       idColIndex = headers.length; 
       sheet.getRange(1, idColIndex + 1).setValue(ID_COLUMN_HEADER);
     }
 
-    // 3. Generate & Save ID
-    // Check if ID already exists (in case of re-runs)
-    let uniqueId = sheet.getRange(rowIdx, idColIndex + 1).getValue();
+    // 2. Generate ID (Logic: If empty OR not 4 chars, regenerate)
+    let uniqueId = String(sheet.getRange(rowIdx, idColIndex + 1).getValue()).trim();
     
-    if (!uniqueId || uniqueId === "") {
+    if (!uniqueId || uniqueId === "" || uniqueId.length !== 4) {
       uniqueId = generateUniqueId();
       sheet.getRange(rowIdx, idColIndex + 1).setValue(uniqueId);
-      SpreadsheetApp.flush(); // CRITICAL: Force save before emailing
-      console.log("Generated ID:", uniqueId);
+      SpreadsheetApp.flush(); // FORCE SAVE to disk immediately
+      console.log("Generated New ID:", uniqueId);
+    } else {
+      console.log("Using Existing ID:", uniqueId);
     }
 
-    // 4. Fetch Data for Email
-    // Re-fetch row data to ensure we have the saved ID and latest values
-    const rowValues = sheet.getRange(rowIdx, 1, 1, sheet.getLastColumn()).getValues()[0];
-    const email = rowValues[EMAIL_COLUMN_INDEX];
-    const name = rowValues[NAME_COLUMN_INDEX] || "Facility Manager";
+    // 3. Fetch Data for Email
+    // Re-fetch the row to be absolutely sure we have the data on disk
+    const freshRowValues = sheet.getRange(rowIdx, 1, 1, sheet.getLastColumn()).getValues()[0];
+    const email = freshRowValues[EMAIL_COLUMN_INDEX];
+    const name = freshRowValues[NAME_COLUMN_INDEX] || "Facility Manager";
 
-    // 5. Send Email
+    // 4. Send Email (No PDF)
     if (validateEmail(email)) {
       sendAccessEmail(email, name, uniqueId);
     } else {
-      console.error("Invalid Email:", email);
+      console.error("Invalid Email, cannot send code:", email);
     }
 
   } catch (err) {
@@ -129,11 +117,8 @@ function onFormSubmitTrigger(e) {
   }
 }
 
-/**
- * Generates secure 4-char ID (e.g. "A9X2")
- */
 function generateUniqueId() {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // No I, O, 1, 0 to avoid confusion
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   let result = "";
   for (let i = 0; i < 4; i++) {
     result += chars.charAt(Math.floor(Math.random() * chars.length));
@@ -141,32 +126,30 @@ function generateUniqueId() {
   return result;
 }
 
-/**
- * Sends the access code email
- */
 function sendAccessEmail(email, name, code) {
-  const appUrl = "https://tfml-diagnostic-tool.vercel.app"; // CHECK THIS MATCHES YOUR VERCEL URL
-  const subject = `Your ISO 41001 Report Access Code: ${code}`;
+  const appUrl = "https://tfml-diagnostic-tool.vercel.app"; 
+  const subject = `Your Assessment Access Code: ${code}`;
   
+  // HTML Template - No PDF Attachment logic
   const htmlBody = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px;">
-      <h2 style="color: #2563eb;">ISO 41001 Maturity Assessment</h2>
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 8px;">
+      <h2 style="color: #2563eb; margin-top: 0;">ISO 41001 Assessment Complete</h2>
       <p>Dear ${name},</p>
-      <p>Your assessment is complete. To view your AI-powered analysis dashboard, use the code below:</p>
+      <p>Your diagnostic report is ready. Please use the following Access Code to view your dashboard:</p>
       
-      <div style="background-color: #f8fafc; border: 2px dashed #cbd5e1; padding: 20px; text-align: center; margin: 25px 0; border-radius: 8px;">
-        <span style="font-family: monospace; font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #1e293b;">${code}</span>
-        <p style="margin: 10px 0 0 0; font-size: 12px; color: #64748b;">(Access Code)</p>
+      <div style="background: #f8fafc; padding: 15px; text-align: center; border: 1px dashed #cbd5e1; margin: 20px 0; border-radius: 6px;">
+        <span style="font-family: monospace; font-size: 32px; font-weight: 700; color: #1e293b; letter-spacing: 4px;">${code}</span>
+        <div style="font-size: 11px; color: #64748b; margin-top: 5px;">(Enter this code on the login screen)</div>
       </div>
 
-      <div style="text-align: center;">
+      <div style="text-align: center; margin-bottom: 20px;">
         <a href="${appUrl}/#/report?id=${code}" style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
-          Open Dashboard
+          View Report
         </a>
       </div>
       
-      <p style="font-size: 12px; color: #999; margin-top: 30px; text-align: center;">
-        If the button doesn't work, visit ${appUrl} and enter code <strong>${code}</strong>.
+      <p style="font-size: 12px; color: #999;">
+        If the button above does not work, go to <a href="${appUrl}">${appUrl}</a> and manually enter code: <strong>${code}</strong>
       </p>
     </div>
   `;
@@ -175,28 +158,21 @@ function sendAccessEmail(email, name, code) {
     to: email,
     subject: subject,
     htmlBody: htmlBody
+    // No attachments array here
   });
 }
 
-/**
- * Maps Sheet Columns to JSON Keys for React
- * This loosely matches column names to avoid errors if you rename headers slightly
- */
 function formatRecord(row, headers) {
-  
-  // Helper to find column index by loose name matching
   const getVal = (searchTerms) => {
-    // 1. Try exact match first
     for (const term of searchTerms) {
       const idx = headers.indexOf(term);
       if (idx > -1) return row[idx];
     }
-    // 2. Try partial match
     for (const term of searchTerms) {
-      const idx = headers.findIndex(h => h.toString().toLowerCase().includes(term.toLowerCase()));
+      const idx = headers.findIndex(h => String(h).toLowerCase().includes(term.toLowerCase()));
       if (idx > -1) return row[idx];
     }
-    return 0; // Default to 0 if not found
+    return 0;
   };
 
   const getStr = (searchTerms) => {
@@ -209,13 +185,9 @@ function formatRecord(row, headers) {
     respondentName: getStr(["Name", "Full Name", "Respondent Name"]),
     respondentEmail: getStr(["Email", "Email Address"]),
     organization: getStr(["Organization", "Company", "Organization Name"]),
-    submissionDate: row[0], // Timestamp is always first column
-
-    // SCORING: Maps your sheet columns to React state
+    submissionDate: row[0], 
     aiMaturityScore: Number(getVal(["Total Score", "Maturity Score", "Overall Score"])),
     aiMaturityLevel: getStr(["Maturity Level", "Level"]),
-    
-    // CLAUSE SCORES
     clause6Score: Number(getVal(["Clause 6", "Planning", "Clause 6 Score"])),
     clause7Score: Number(getVal(["Clause 7", "Support", "Clause 7 Score"])),
     clause8Score: Number(getVal(["Clause 8", "Operation", "Clause 8 Score"])),
@@ -230,8 +202,4 @@ function validateEmail(email) {
 function jsonResponse(data, status = 200) {
   return ContentService.createTextOutput(JSON.stringify(data))
     .setMimeType(ContentService.MimeType.JSON);
-}
-
-function setup() {
-  Logger.log("Permissions Setup Complete.");
 }

@@ -1,10 +1,14 @@
+declare var process: any; // Fix for TS build error: "Cannot find name 'process'"
+
 import { GoogleGenAI, Type } from "@google/genai";
 import { MaturityRecord, AnalysisResult } from "../types";
 
 export const generateAnalysis = async (record: MaturityRecord): Promise<AnalysisResult> => {
   // The API key must be obtained exclusively from the environment variable process.env.API_KEY
   // Note: We use process.env here because it is polyfilled by vite.config.ts define: { 'process.env': process.env }
-  if (!process.env.API_KEY) {
+  const apiKey = process.env.API_KEY;
+
+  if (!apiKey) {
     console.warn("No API Key found. Returning mock analysis.");
     return {
       executiveSummary: "System is in Demo Mode. Set API_KEY environment variable to enable live AI analysis.",
@@ -13,7 +17,8 @@ export const generateAnalysis = async (record: MaturityRecord): Promise<Analysis
     };
   }
 
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  // Use the local apiKey variable which TS knows is now a string
+  const ai = new GoogleGenAI({ apiKey: apiKey });
 
   const prompt = `
     You are a Senior Facility Management Consultant specializing in ISO 41001.

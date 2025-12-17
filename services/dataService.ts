@@ -1,26 +1,42 @@
+declare var process: any; // Fix for TS build error: "Cannot find name 'process'"
+
 import { MaturityRecord } from '../types';
 
 // Use process.env for environment variables as configured in vite.config.ts
 const GAS_API_URL = process.env.VITE_GOOGLE_SCRIPT_URL;
 
 export const fetchRecordById = async (id: string): Promise<MaturityRecord | null> => {
+  // Local variable to satisfy TypeScript strict null checks
+  const apiUrl = GAS_API_URL;
+
   // If no URL is configured, or if requesting the specific demo user, return mock data.
-  if (!GAS_API_URL || id === 'DEMO') {
-    if (id !== 'DEMO' && (!GAS_API_URL || GAS_API_URL.trim() === '')) {
+  if (!apiUrl || id === 'DEMO') {
+    if (id !== 'DEMO' && (!apiUrl || apiUrl.trim() === '')) {
       console.warn("VITE_GOOGLE_SCRIPT_URL not set. Using mock data.");
     }
     return fetchDemoRecord();
   }
 
+  // VALIDATION: Check if URL ends in /exec
+  if (!apiUrl.includes('/exec')) {
+    console.error("Configuration Error: Google Script URL must end in '/exec'. Current URL:", apiUrl);
+    throw new Error("DEPLOYMENT_CONFIG_ERROR");
+  }
+
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+    // Cast to any to prevent TS error: Type 'Timeout' is not assignable to type 'number'
+    const timeoutId: any = setTimeout(() => controller.abort(), 15000); // 15s timeout
 
     // Request Setup
     // Ensure the ID is uppercase to match the backend logic
     const sanitizedId = id.toUpperCase().trim();
     
-    const response = await fetch(`${GAS_API_URL}?id=${sanitizedId}`, {
+    // Add timestamp to prevent caching (Cache Buster)
+    const timestamp = new Date().getTime();
+    const fetchUrl = `${apiUrl}?id=${sanitizedId}&t=${timestamp}`;
+    
+    const response = await fetch(fetchUrl, {
       method: 'GET',
       mode: 'cors', 
       credentials: 'omit', 
