@@ -103,7 +103,7 @@ const App: React.FC = () => {
           <div className="bg-white p-8 md:p-12 rounded-2xl shadow-2xl shadow-slate-200/50 border border-slate-100 max-w-lg w-full text-center">
             
             <div className="flex justify-center mb-8">
-              <img src="/iso-fm-logo.png" alt="ISO FM Academy" className="h-20 w-auto object-contain" />
+              <img src="https://raw.githubusercontent.com/mrjoe-blip/TFML-ISO41001-FMSMT-DASHBOARD/99d46a833cb2e3ba591e71a26c4a452d99779266/public/iso-fm-logo.png" alt="ISO FM Academy" className="h-20 w-auto object-contain" />
             </div>
 
             <h2 className="text-2xl font-bold text-slate-800 mb-2">Secure Report Access</h2>
