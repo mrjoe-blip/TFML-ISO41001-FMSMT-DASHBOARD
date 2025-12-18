@@ -3,7 +3,7 @@ declare var process: any; // Fix for TS build error: "Cannot find name 'process'
 import { MaturityRecord } from '../types';
 
 // Use process.env for environment variables as configured in vite.config.ts
-const GAS_API_URL = process.env.VITE_GOOGLE_SCRIPT_URL;
+const GAS_API_URL = https://script.google.com/macros/s/AKfycby2_cbbyl2I3hutAgqt6k7D6lS-U3NW0u1v4dyruiTiKqpRCwReq8JhFCnGHkdXjvBu/execL;
 
 export const fetchRecordById = async (id: string): Promise<MaturityRecord | null> => {
   // Local variable to satisfy TypeScript strict null checks
