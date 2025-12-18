@@ -390,8 +390,7 @@ function sendEmailReport(email, name, code, analysis) {
         
         <!-- FIXED LOGO URL: Using 'main' branch for stability -->
         <div style="text-align: center; margin-bottom: 20px;">
-            <img src="https://raw.githubusercontent.com/mrjoe-blip/TFML-ISO41001-FMSMT-DASHBOARD/main/public/iso-fm-logo.png" 
-                 alt="ISOFM Academy Logo" 
+            <img src="https://raw.githubusercontent.com/mrjoe-blip/TFML-ISO41001-FMSMT-DASHBOARD/672e6eea5ac4d579458e221c323eefe7ce56bccf/public/iso-fm-logo.png" 
                  width="150" 
                  style="max-width: 150px; height: auto; border-radius: 4px; display: block; margin: 0 auto;">
         </div>
