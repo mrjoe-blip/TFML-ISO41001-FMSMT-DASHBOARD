@@ -41,7 +41,7 @@ export const fetchRecordById = async (id: string): Promise<MaturityRecord | null
 
     const response = await fetch(fetchUrl, {
       method: 'GET',
-      mode: 'cors', 
+      mode: 'no-cors', 
       credentials: 'omit', 
       redirect: 'follow',
       signal: controller.signal,
