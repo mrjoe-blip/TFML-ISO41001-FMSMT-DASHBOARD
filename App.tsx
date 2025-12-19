@@ -11,6 +11,7 @@ import { fetchRecordById, fetchDemoRecord } from './services/dataService';
 import { generateAnalysis } from './services/geminiService';
 import { MaturityRecord, AnalysisResult, LoadingState } from './types';
 import { Loader2, AlertCircle, FileQuestion, Mail, Calendar, Building2, Sparkles, WifiOff, Lock, ArrowRight, Share2, Printer, Check, KeyRound, Settings } from 'lucide-react';
+import React from "react";
 import DashboardLogin from "./components/DashboardLogin";
 
 function App() {
@@ -20,6 +21,9 @@ function App() {
     </div>
   );
 }
+
+export default App;
+
 
 const App: React.FC = () => {
   const [record, setRecord] = useState<MaturityRecord | null>(null);

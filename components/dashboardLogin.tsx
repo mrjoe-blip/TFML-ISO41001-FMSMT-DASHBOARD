@@ -1,6 +1,8 @@
 import React, { useState } from "react";
+import Dashboard from "./Dashboard"; // adjust if your dashboard file is named differently
 
 function DashboardLogin() {
+  // Define code as state so it's available
   const [code, setCode] = useState("");
   const [data, setData] = useState<any>(null);
 
@@ -15,6 +17,11 @@ function DashboardLogin() {
     }
   };
 
+  // If we already have data, show the dashboard
+  if (data && !data.error) {
+    return <Dashboard report={data} />;
+  }
+
   return (
     <div>
       <form onSubmit={handleSubmit}>
@@ -26,13 +33,7 @@ function DashboardLogin() {
         <button type="submit">Login</button>
       </form>
 
-      {data && (
-        <div>
-          <h2>Welcome {data.respondentName}</h2>
-          <p>Maturity Level: {data.aiMaturityLevel}</p>
-          {/* Render charts here */}
-        </div>
-      )}
+      {data?.error && <p style={{ color: "red" }}>{data.error}</p>}
     </div>
   );
 }
