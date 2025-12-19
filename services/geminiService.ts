@@ -10,28 +10,28 @@ export const generateAnalysis = async (record: MaturityRecord): Promise<Analysis
     console.warn("No API Key found. Returning mock analysis.");
     return {
       executiveSummary: "System is in Demo Mode. Set API_KEY environment variable to enable live AI analysis.",
-      gapAnalysis: "• Demo Gap 1\n• Demo Gap 2",
-      recommendations: "• Demo Recommendation 1"
+      gapAnalysis: "• Demo Gap 1: Strategic planning alignment\n• Demo Gap 2: Operational control documentation",
+      recommendations: "• Demo Recommendation 1: Perform internal audit"
     };
   }
 
   const ai = new GoogleGenAI({ apiKey: apiKey });
 
   const prompt = `
-    You are a Senior Facility Management Consultant specializing in ISO 41001.
-    Analyze the following diagnostic results for "${record.organization}".
+    You are a Senior Facility Management Consultant and ISO 41001 Lead Auditor.
+    Analyze the maturity diagnostic for "${record.organization}".
     
-    Scores (0-100):
-    - Overall: ${record.aiMaturityScore} (${record.aiMaturityLevel})
-    - Planning (Cl. 6): ${record.clause6Score}
-    - Support (Cl. 7): ${record.clause7Score}
-    - Operation (Cl. 8): ${record.clause8Score}
-    - Performance (Cl. 9): ${record.clause9Score}
+    Diagnostic Profile (0-100 scale):
+    - Overall Maturity: ${record.aiMaturityScore} (${record.aiMaturityLevel})
+    - Clause 6 (Planning): ${record.clause6Score}
+    - Clause 7 (Support): ${record.clause7Score}
+    - Clause 8 (Operation): ${record.clause8Score}
+    - Clause 9 (Performance): ${record.clause9Score}
 
-    Provide a JSON response with concise, punchy content:
-    1. executiveSummary: A 2-sentence holistic summary.
-    2. gapAnalysis: A concise list of the top 3 specific gaps/weaknesses found in the clauses.
-    3. recommendations: 3 specific, actionable, short strategic steps. Do not write long paragraphs.
+    Provide a professional JSON assessment:
+    1. executiveSummary: 2-sentence strategic overview.
+    2. gapAnalysis: Top 3 specific ISO 41001 gaps identified.
+    3. recommendations: 3 high-impact, short-term strategic actions.
   `;
 
   try {
@@ -53,16 +53,16 @@ export const generateAnalysis = async (record: MaturityRecord): Promise<Analysis
     });
 
     const text = response.text;
-    if (!text) throw new Error("No response from AI");
+    if (!text) throw new Error("Empty AI response");
 
     return JSON.parse(text) as AnalysisResult;
 
   } catch (error) {
     console.error("Gemini Analysis Failed:", error);
     return {
-      executiveSummary: "Unable to generate real-time analysis at this moment.",
-      gapAnalysis: "• Review Planning phase\n• Check Support documentation",
-      recommendations: "• Contact support for manual review"
+      executiveSummary: "Real-time analysis is temporarily unavailable. Please refer to the numeric scores above.",
+      gapAnalysis: "• Data processing delay\n• Framework alignment pending",
+      recommendations: "• Refresh the dashboard in a few minutes\n• Contact ISO FM Academy for manual review"
     };
   }
 };
