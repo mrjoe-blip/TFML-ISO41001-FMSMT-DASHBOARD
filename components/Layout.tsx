@@ -5,14 +5,13 @@ interface LayoutProps {
   children?: React.ReactNode;
   currentView: string;
   onNavigate: (view: string) => void;
-  report?: any; // new prop for respondent data
+  report?: any;
 }
 
 export const Layout: React.FC<LayoutProps> = ({ children, currentView, onNavigate, report }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
-  // Handle scroll effect for header
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 10);
@@ -29,7 +28,6 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onNavigat
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
-      {/* Secure Header */}
       <header 
         className={`fixed top-0 w-full z-50 transition-all duration-300 print:hidden ${
           scrolled || isMobileMenuOpen 
@@ -38,13 +36,11 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onNavigat
         }`}
       >
         <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          
-          {/* Logo Section */}
           <div 
             className="flex items-center gap-3 cursor-pointer group select-none" 
             onClick={() => onNavigate('dashboard')}
           >
-            <img src="/iso-fm-logo.png" alt="ISO FM Academy" className="h-10 w-auto object-contain" />
+            <img src="https://raw.githubusercontent.com/mrjoe-blip/TFML-ISO41001-FMSMT-DASHBOARD/main/public/iso-fm-logo.png" alt="ISO FM Academy" className="h-10 w-auto object-contain" />
             <div className="hidden sm:flex flex-col border-l border-slate-300 pl-3">
               <h1 className="text-sm font-bold text-slate-900 tracking-tight leading-none">Maturity Diagnostic</h1>
               <div className="flex items-center gap-1 mt-0.5">
@@ -54,7 +50,6 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onNavigat
             </div>
           </div>
           
-          {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center justify-center absolute left-1/2 transform -translate-x-1/2">
             <div className="flex items-center gap-1 bg-slate-100/80 p-1.5 rounded-full border border-slate-200/60 shadow-inner">
               {navItems.map((item) => (
@@ -73,7 +68,6 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onNavigat
             </div>
           </nav>
 
-          {/* Right Section */}
           <div className="hidden md:flex items-center gap-3">
             <a 
               href="https://isofmacademy.ng/consult/" 
@@ -86,7 +80,6 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onNavigat
             </a>
           </div>
 
-          {/* Mobile Menu Button */}
           <button 
             className="md:hidden p-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors active:scale-95"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -96,7 +89,6 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onNavigat
           </button>
         </div>
 
-        {/* Mobile Navigation */}
         {isMobileMenuOpen && (
           <div className="md:hidden absolute top-16 left-0 w-full bg-white border-b border-slate-200 shadow-xl animate-fade-in z-40 max-h-[calc(100vh-4rem)] overflow-y-auto">
             <div className="flex flex-col p-4 space-y-2">
@@ -131,30 +123,14 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onNavigat
         )}
       </header>
       
-      {/* Main Content */}
       <main className="flex-grow w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 mt-16 space-y-8 print:mt-0 print:px-0">
-        {report ? (
-          <div className="space-y-4">
-            <h2 className="text-xl font-bold text-slate-900">Welcome {report.respondentName}</h2>
-            <p className="text-slate-700">Maturity Level: {report.aiMaturityLevel}</p>
-            <p className="text-slate-700">Score: {report.aiMaturityScore}</p>
-            <ul className="list-disc pl-6 text-slate-600">
-              <li>Clause 6 Score: {report.clause6Score}</li>
-              <li>Clause 7 Score: {report.clause7Score}</li>
-              <li>Clause 8 Score: {report.clause8Score}</li>
-              <li>Clause 9 Score: {report.clause9Score}</li>
-            </ul>
-          </div>
-        ) : (
-          children
-        )}
+        {children}
       </main>
 
-      {/* Footer */}
       <footer className="bg-slate-900 text-slate-400 py-12 mt-auto border-t border-slate-800 print:hidden">
         <div className="max-w-7xl mx-auto px-4 flex flex-col items-center justify-center text-center">
           <div className="flex items-center gap-2 mb-4 text-white">
-            <img src="/iso-fm-logo.png" alt="ISO FM Academy" className="h-8 w-auto brightness-0 invert opacity-80" />
+            <img src="https://raw.githubusercontent.com/mrjoe-blip/TFML-ISO41001-FMSMT-DASHBOARD/main/public/iso-fm-logo.png" alt="ISO FM Academy" className="h-8 w-auto brightness-0 invert opacity-80" />
             <span className="font-bold text-lg">Maturity Diagnostic</span>
           </div>
           <p className="text-sm font-medium text-slate-300 max-w-md mx-auto mb-6">
