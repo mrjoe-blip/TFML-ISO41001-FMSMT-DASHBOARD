@@ -12,7 +12,7 @@
 
 // --- CONFIGURATION ---
 const API_KEY_NAME = 'GEMINI_API_KEY';
-const MODEL_NAME = 'gemini-3-flash-preview'; 
+const MODEL_NAME = 'gemini-2.5-flash'; 
 
 // Ensure NO trailing slash here
 const DASHBOARD_BASE_URL = "https://tfml-iso-41001-fmsmt-dashboard.vercel.app"; 
