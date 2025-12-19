@@ -11,18 +11,7 @@ import { fetchRecordById, fetchDemoRecord } from './services/dataService';
 import { generateAnalysis } from './services/geminiService';
 import { MaturityRecord, AnalysisResult, LoadingState } from './types';
 import { Loader2, AlertCircle, FileQuestion, Mail, Calendar, Building2, Sparkles, WifiOff, Lock, ArrowRight, Share2, Printer, Check, KeyRound, Settings } from 'lucide-react';
-import React from "react";
 import DashboardLogin from "./components/DashboardLogin";
-
-function App() {
-  return (
-    <div>
-      <DashboardLogin />
-    </div>
-  );
-}
-
-export default App;
 
 
 const App: React.FC = () => {
@@ -32,8 +21,10 @@ const App: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [analysisLoading, setAnalysisLoading] = useState<boolean>(false);
   const [inputId, setInputId] = useState('');
+  const [report] = useState<any>(null);
   const [currentView, setCurrentView] = useState('dashboard');
   const [copied, setCopied] = useState(false);
+// If no report yet, show login only if (!report) { return <DashboardLogin onSuccess={(data: any) => setReport(data)} />; } // Otherwise, render your existing dashboard code return ( <Layout currentView={currentView} onNavigate={setCurrentView} report={report}> {/* keep all your existing dashboard sections here */} </Layout> ); }; export default App;
 
   useEffect(() => {
     const handleHashChange = () => {
