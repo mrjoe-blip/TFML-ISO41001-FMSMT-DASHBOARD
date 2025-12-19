@@ -21,19 +21,19 @@ export const generateAnalysis = async (record: MaturityRecord): Promise<Analysis
     ACT AS A SENIOR ISO 41001 LEAD AUDITOR.
     Analyze the maturity diagnostic for "${record.organization}".
     
-    Diagnostic Profile (0-100 scale):
+    Diagnostic Scores (0-100 scale):
     - Overall Maturity: ${record.aiMaturityScore} (${record.aiMaturityLevel})
     - Clause 6 (Planning): ${record.clause6Score}
     - Clause 7 (Support): ${record.clause7Score}
     - Clause 8 (Operation): ${record.clause8Score}
     - Clause 9 (Performance): ${record.clause9Score}
 
-    Provide a professional Auditor-Grade JSON assessment:
-    1. executiveSummary: 2-3 sentence high-level strategic overview of the current status.
-    2. gapAnalysis: Top 5 specific ISO 41001 gaps identified based on the scores. Cite exact clauses (e.g. 6.1, 8.1).
-    3. recommendations: 5 high-impact, actionable strategic recommendations.
+    TASK: Provide a comprehensive high-stakes JSON assessment.
+    1. executiveSummary: 2-3 sentence strategic executive-level overview.
+    2. gapAnalysis: Identify 5 detailed deficiencies citing exact ISO 41001 clauses (e.g. 6.2, 8.1.1). MUST be high quality. Prefix each with "[GAP] ".
+    3. recommendations: Identify 5 high-impact strategic actions to close gaps. Prefix each with "[ACTION] ".
     
-    Ensure gaps are formatted with "[GAP]" and recommendations with "[ACTION]".
+    Ensure gaps and actions are formatted for a professional report.
   `;
 
   try {
@@ -62,9 +62,9 @@ export const generateAnalysis = async (record: MaturityRecord): Promise<Analysis
   } catch (error) {
     console.error("Gemini Analysis Failed:", error);
     return {
-      executiveSummary: "Real-time auditing analysis is temporarily unavailable. Numeric diagnostics are still active above.",
-      gapAnalysis: "[GAP] System latency preventing real-time gap extraction.\n[GAP] ISO 41001 clause mapping in progress.",
-      recommendations: "[ACTION] Refresh the dashboard in a few moments.\n[ACTION] Contact ISOFM Academy for a manual expert review."
+      executiveSummary: "Strategic auditing analysis is currently unavailable. Numeric diagnostics remain active above.",
+      gapAnalysis: "[GAP] System latency preventing real-time gap extraction.\n[GAP] Comprehensive auditor mapping requires stable connection.",
+      recommendations: "[ACTION] Refresh the dashboard to retry analysis.\n[ACTION] Contact ISOFM Academy for a formal human-led audit report."
     };
   }
 };

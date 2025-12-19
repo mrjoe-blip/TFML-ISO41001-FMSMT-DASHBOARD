@@ -10,13 +10,14 @@ import { IsoStandardsView } from './components/IsoStandardsView';
 import { fetchRecordById } from './services/dataService';
 import { generateAnalysis } from './services/geminiService';
 import { MaturityRecord, AnalysisResult, LoadingState } from './types';
-import { Loader2, AlertCircle, FileQuestion, Mail, Calendar, Building2, Sparkles, WifiOff, ArrowRight, Share2, Printer, Check, KeyRound, Settings, Info, Copy } from 'lucide-react';
+import { Loader2, AlertCircle, Mail, Calendar, Building2, Sparkles, WifiOff, ArrowRight, Printer, Check, KeyRound, Info, Copy, ServerCrash } from 'lucide-react';
 
 const App: React.FC = () => {
   const [record, setRecord] = useState<MaturityRecord | null>(null);
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [loadingState, setLoadingState] = useState<LoadingState>(LoadingState.IDLE);
   const [errorMessage, setErrorMessage] = useState<string>("");
+  const [errorDetail, setErrorDetail] = useState<string>("");
   const [analysisLoading, setAnalysisLoading] = useState<boolean>(false);
   const [inputId, setInputId] = useState('');
   const [currentView, setCurrentView] = useState('dashboard');
@@ -46,6 +47,7 @@ const App: React.FC = () => {
     setLoadingState(LoadingState.LOADING);
     setAnalysis(null);
     setErrorMessage("");
+    setErrorDetail("");
     
     try {
       const data = await fetchRecordById(id);
@@ -62,7 +64,14 @@ const App: React.FC = () => {
     } catch (e: any) {
       console.error(e);
       setLoadingState(LoadingState.ERROR);
-      setErrorMessage(e.message || "An unexpected error occurred.");
+      if (e.message.includes('|')) {
+        const [code, detail] = e.message.split('|');
+        setErrorMessage(code);
+        setErrorDetail(detail);
+      } else {
+        setErrorMessage("UNEXPECTED_FAILURE");
+        setErrorDetail(e.message || "An unknown error occurred.");
+      }
     }
   };
 
@@ -81,9 +90,9 @@ const App: React.FC = () => {
             <div className="flex justify-center mb-8">
               <img src="https://raw.githubusercontent.com/mrjoe-blip/TFML-ISO41001-FMSMT-DASHBOARD/main/public/iso-fm-logo.png" alt="ISO FM Academy" className="h-20 w-auto object-contain" />
             </div>
-            <h2 className="text-2xl font-bold text-slate-800 mb-2">Secure Report Access</h2>
+            <h2 className="text-2xl font-bold text-slate-800 mb-2">Diagnostic Access</h2>
             <p className="text-slate-500 mb-8 text-sm leading-relaxed">
-              Enter your <span className="font-bold text-slate-700">4-character Access Code</span> to view your diagnostic.
+              Enter your <span className="font-bold text-slate-700">4-character code</span> to authenticate.
             </p>
             <form onSubmit={handleLogin} className="flex flex-col gap-4">
               <div className="relative">
@@ -105,13 +114,13 @@ const App: React.FC = () => {
                 disabled={inputId.length !== 4}
                 className="group bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white font-semibold py-3 rounded-xl transition-all shadow-md flex items-center justify-center gap-2"
               >
-                Access Report
+                Access Diagnostic
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </button>
             </form>
             <div className="mt-8 pt-6 border-t border-slate-100">
                <button onClick={() => window.location.hash = '/report?id=DEMO'} className="text-xs text-slate-400 hover:text-blue-600 underline">
-                 View Demo Report
+                 Load Demo Session
                </button>
             </div>
           </div>
@@ -123,55 +132,55 @@ const App: React.FC = () => {
       return (
         <div className="flex flex-col items-center justify-center h-[60vh]">
           <Loader2 className="w-12 h-12 text-blue-600 animate-spin mb-4" />
-          <h3 className="text-xl font-bold text-slate-800">Authenticating...</h3>
+          <h3 className="text-xl font-bold text-slate-800">Connecting to Database...</h3>
+          <p className="text-slate-500 text-sm mt-2">Authenticating credentials with TFML engine</p>
         </div>
       );
     }
 
-    if (loadingState === LoadingState.ERROR) {
-      const isPermissionError = errorMessage === "PERMISSION_ERROR";
-      const isNetworkError = errorMessage.startsWith("NETWORK_ERROR");
-      const currentUrl = errorMessage.includes("URL:") ? errorMessage.split("URL:")[1] : "Not found";
+    if (loadingState === LoadingState.ERROR || loadingState === LoadingState.NOT_FOUND) {
+      const isNotFound = loadingState === LoadingState.NOT_FOUND;
 
       return (
-        <div className="max-w-2xl mx-auto mt-10 animate-fade-in px-4 pb-20">
-          <div className="bg-white p-8 rounded-3xl border border-red-100 shadow-xl shadow-red-500/5">
-            <div className="flex flex-col items-center text-center mb-8">
+        <div className="max-w-2xl mx-auto mt-10 animate-fade-in px-4 pb-20 text-center">
+          <div className="bg-white p-10 rounded-3xl border border-red-100 shadow-xl">
+            <div className="flex flex-col items-center mb-6">
               <div className="p-4 bg-red-50 rounded-full mb-4">
-                {isPermissionError ? <Settings className="w-10 h-10 text-red-600" /> : <AlertCircle className="w-10 h-10 text-red-500" />}
+                {isNotFound ? <KeyRound className="w-10 h-10 text-red-500" /> : <ServerCrash className="w-10 h-10 text-red-600" />}
               </div>
-              <h3 className="text-2xl font-extrabold text-slate-900 mb-2">
-                {isPermissionError ? "Backend Permission Issue" : "Connection Failure"}
+              <h3 className="text-2xl font-black text-slate-900 mb-2">
+                {isNotFound ? "Access Code Invalid" : "System Connection Failed"}
               </h3>
-              <p className="text-slate-500 max-w-md">
-                We couldn't retrieve your report. Please check the following details.
+              <p className="text-slate-500 text-sm">
+                {isNotFound 
+                  ? "We couldn't locate a record for this code. Please verify the code in your report email."
+                  : "A technical barrier is preventing the dashboard from reaching your data."}
               </p>
             </div>
 
-            <div className="bg-slate-50 rounded-2xl p-6 border border-slate-200 mb-6">
-              <h4 className="flex items-center gap-2 font-bold text-slate-800 mb-4 text-sm uppercase tracking-wider">
-                <Info className="w-4 h-4 text-blue-500" /> Active API URL Configuration
-              </h4>
-              <div className="bg-slate-900 text-slate-300 p-3 rounded-lg font-mono text-[10px] break-all mb-4 border border-slate-700">
-                {currentUrl}
+            {!isNotFound && (
+              <div className="bg-slate-900 rounded-2xl p-6 text-left mb-8 border border-slate-800">
+                <h4 className="flex items-center gap-2 font-bold text-blue-400 mb-4 text-[10px] uppercase tracking-widest">
+                  <Info className="w-3 h-3" /> Technical Diagnosis
+                </h4>
+                <div className="space-y-4">
+                   <div>
+                     <p className="text-[10px] text-slate-500 font-bold uppercase mb-1">Status Code</p>
+                     <p className="text-slate-200 font-mono text-xs">{errorMessage}</p>
+                   </div>
+                   <div>
+                     <p className="text-[10px] text-slate-500 font-bold uppercase mb-1">Real Cause</p>
+                     <p className="text-slate-300 text-sm leading-relaxed">{errorDetail}</p>
+                   </div>
+                </div>
               </div>
-              <ul className="space-y-4 text-sm text-slate-600">
-                <li className="flex items-start gap-3">
-                  <div className="mt-1 w-5 h-5 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center flex-shrink-0 font-bold text-[10px]">1</div>
-                  <span><strong>Deployment Access:</strong> Ensure Google Script is set to <strong>"Execute as: Me"</strong> and <strong>"Who has access: Anyone"</strong>.</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <div className="mt-1 w-5 h-5 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center flex-shrink-0 font-bold text-[10px]">2</div>
-                  <span><strong>URL Verification:</strong> The URL above must end in <code>/exec</code>. If it doesn't, update your Vercel Environment Variables.</span>
-                </li>
-              </ul>
-            </div>
+            )}
 
             <button 
               onClick={() => { window.location.hash = ''; }} 
-              className="w-full py-4 bg-slate-900 text-white font-bold rounded-2xl hover:bg-slate-800 transition-all shadow-lg active:scale-95"
+              className="w-full py-4 bg-slate-900 text-white font-bold rounded-2xl hover:bg-slate-800 transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2"
             >
-              Return to Login
+              <ArrowRight className="w-4 h-4 rotate-180" /> Return to Login
             </button>
           </div>
         </div>
@@ -199,20 +208,20 @@ const App: React.FC = () => {
                    <span className="flex items-center gap-1.5"><Calendar className="w-4 h-4" /> {record.submissionDate}</span>
                 </div>
               </div>
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3">
                 <div className="hidden md:flex items-center gap-2 print:hidden">
                     <button onClick={() => {navigator.clipboard.writeText(window.location.href); setCopied(true); setTimeout(()=>setCopied(false), 2000)}} className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-600 bg-slate-50 border border-slate-200 rounded-lg">
                       {copied ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
-                      {copied ? 'Copied' : 'Share'}
+                      {copied ? 'Copied' : 'Share Link'}
                     </button>
-                    <button onClick={() => window.print()} className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-600 bg-slate-50 border border-slate-200 rounded-lg"><Printer className="w-4 h-4" /> Print</button>
+                    <button onClick={() => window.print()} className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-600 bg-slate-50 border border-slate-200 rounded-lg"><Printer className="w-4 h-4" /> Print PDF</button>
                 </div>
                 <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 flex items-center gap-4 print:bg-transparent print:border-none">
                   <div className="text-right">
-                    <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-0.5">Maturity Level</p>
-                    <p className="text-lg font-bold text-slate-800 leading-none">{record.aiMaturityLevel}</p>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5 leading-none">Maturity Status</p>
+                    <p className="text-base font-extrabold text-slate-800 leading-none">{record.aiMaturityLevel}</p>
                   </div>
-                  <div className={`w-2 h-10 rounded-full ${record.aiMaturityScore < 40 ? 'bg-red-500' : record.aiMaturityScore < 70 ? 'bg-amber-500' : 'bg-emerald-500'}`}></div>
+                  <div className={`w-1.5 h-8 rounded-full ${record.aiMaturityScore < 40 ? 'bg-red-500' : record.aiMaturityScore < 70 ? 'bg-amber-500' : 'bg-emerald-500'}`}></div>
                 </div>
               </div>
             </div>
@@ -227,7 +236,10 @@ const App: React.FC = () => {
           </div>
           <div className="mt-10 print:break-before-page">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2"><Sparkles className="w-6 h-6 text-blue-600" /> Strategic AI Analysis</h2>
+              <h2 className="text-2xl font-extrabold text-slate-900 flex items-center gap-3">
+                <Sparkles className="w-7 h-7 text-blue-600" /> 
+                ISO 41001 Auditor Analysis
+              </h2>
             </div>
             <AnalysisSection analysis={analysis} loading={analysisLoading} />
           </div>

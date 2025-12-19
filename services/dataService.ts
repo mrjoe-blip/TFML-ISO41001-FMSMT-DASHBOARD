@@ -20,15 +20,14 @@ export const fetchRecordById = async (id: string): Promise<MaturityRecord | null
   if (id === 'DEMO') return fetchDemoRecord();
 
   if (!GAS_API_URL || GAS_API_URL === '/exec') {
-    console.error("Configuration Error: VITE_GOOGLE_SCRIPT_URL is missing.");
-    throw new Error("DEPLOYMENT_CONFIG_ERROR");
+    throw new Error("CONFIG_MISSING|The Google Script URL is not set in environment variables.");
   }
 
   try {
     const sanitizedId = id.toUpperCase().trim();
     const fetchUrl = `${GAS_API_URL}?id=${sanitizedId}`;
     
-    console.log(`[DEBUG] Attempting fetch from: ${fetchUrl}`);
+    console.log(`[DEBUG] Fetching: ${fetchUrl}`);
 
     const response = await fetch(fetchUrl, {
       method: 'GET',
@@ -39,35 +38,36 @@ export const fetchRecordById = async (id: string): Promise<MaturityRecord | null
     
     if (!response.ok) {
       if (response.status === 404) return null;
-      throw new Error(`HTTP Error: ${response.status}`);
+      throw new Error(`HTTP_STATUS_${response.status}|Server returned a ${response.status} status.`);
     }
 
     const text = await response.text();
     
-    if (text.trim().startsWith('<!DOCTYPE html>') || text.includes('accounts.google.com')) {
-      console.error(`[DEBUG] Permission Error. Fetch URL was: ${fetchUrl}`);
-      throw new Error("PERMISSION_ERROR");
+    // DETECT GOOGLE PERMISSION/LOGIN PAGE (Returns HTML instead of JSON)
+    if (text.trim().startsWith('<!DOCTYPE html>') || text.includes('google-signin') || text.includes('accounts.google.com')) {
+      throw new Error("PERMISSION_DENIED|The Google Script is set to 'Only Me' or 'Anyone with Google Account'. It must be 'Anyone'.");
     }
 
     try {
       const data = JSON.parse(text);
       if (data.error) {
-        if (data.error === "Record not found") return null;
-        throw new Error(data.error);
+        if (data.error === "RECORD_NOT_FOUND") return null;
+        throw new Error(`SCRIPT_ERROR|${data.error}`);
       }
       return data as MaturityRecord;
     } catch (parseErr) {
-      console.error("[DEBUG] JSON Parse Error. Raw text start:", text.substring(0, 100));
-      throw new Error("Invalid response format from server.");
+      // If parsing fails, the script might have crashed and returned a raw error string
+      console.error("[DEBUG] Raw response:", text);
+      throw new Error("INVALID_JSON|The script returned text that isn't JSON. Check script logs.");
     }
 
   } catch (error: any) {
-    console.error("Data Fetch Error:", error);
+    console.error("Fetch Logic Error:", error);
+    if (error.message.includes('|')) throw error; // Already formatted
     if (error.message === 'Failed to fetch') {
-      // Return more context about the current URL to the UI error handler
-      throw new Error(`NETWORK_ERROR|URL:${GAS_API_URL}`);
+      throw new Error(`NETWORK_BLOCKED|Check if URL is correct and script is deployed as a Web App: ${GAS_API_URL}`);
     }
-    throw error;
+    throw new Error(`UNKNOWN_ERROR|${error.message}`);
   }
 };
 
