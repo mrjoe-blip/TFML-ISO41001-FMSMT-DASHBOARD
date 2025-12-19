@@ -10,15 +10,15 @@ export const generateAnalysis = async (record: MaturityRecord): Promise<Analysis
     console.warn("No API Key found. Returning mock analysis.");
     return {
       executiveSummary: "System is in Demo Mode. Set API_KEY environment variable to enable live AI analysis.",
-      gapAnalysis: "• Demo Gap 1: Strategic planning alignment\n• Demo Gap 2: Operational control documentation",
-      recommendations: "• Demo Recommendation 1: Perform internal audit"
+      gapAnalysis: "• Demo Gap 1: Strategic planning alignment (Cl. 6.1)\n• Demo Gap 2: Operational control documentation (Cl. 8.1)",
+      recommendations: "• Demo Recommendation 1: Perform internal audit (Cl. 9.2)"
     };
   }
 
   const ai = new GoogleGenAI({ apiKey: apiKey });
 
   const prompt = `
-    You are a Senior Facility Management Consultant and ISO 41001 Lead Auditor.
+    ACT AS A SENIOR ISO 41001 LEAD AUDITOR.
     Analyze the maturity diagnostic for "${record.organization}".
     
     Diagnostic Profile (0-100 scale):
@@ -28,10 +28,12 @@ export const generateAnalysis = async (record: MaturityRecord): Promise<Analysis
     - Clause 8 (Operation): ${record.clause8Score}
     - Clause 9 (Performance): ${record.clause9Score}
 
-    Provide a professional JSON assessment:
-    1. executiveSummary: 2-sentence strategic overview.
-    2. gapAnalysis: Top 3 specific ISO 41001 gaps identified.
-    3. recommendations: 3 high-impact, short-term strategic actions.
+    Provide a professional Auditor-Grade JSON assessment:
+    1. executiveSummary: 2-3 sentence high-level strategic overview of the current status.
+    2. gapAnalysis: Top 5 specific ISO 41001 gaps identified based on the scores. Cite exact clauses (e.g. 6.1, 8.1).
+    3. recommendations: 5 high-impact, actionable strategic recommendations.
+    
+    Ensure gaps are formatted with "[GAP]" and recommendations with "[ACTION]".
   `;
 
   try {
@@ -60,9 +62,9 @@ export const generateAnalysis = async (record: MaturityRecord): Promise<Analysis
   } catch (error) {
     console.error("Gemini Analysis Failed:", error);
     return {
-      executiveSummary: "Real-time analysis is temporarily unavailable. Please refer to the numeric scores above.",
-      gapAnalysis: "• Data processing delay\n• Framework alignment pending",
-      recommendations: "• Refresh the dashboard in a few minutes\n• Contact ISO FM Academy for manual review"
+      executiveSummary: "Real-time auditing analysis is temporarily unavailable. Numeric diagnostics are still active above.",
+      gapAnalysis: "[GAP] System latency preventing real-time gap extraction.\n[GAP] ISO 41001 clause mapping in progress.",
+      recommendations: "[ACTION] Refresh the dashboard in a few moments.\n[ACTION] Contact ISOFM Academy for a manual expert review."
     };
   }
 };
