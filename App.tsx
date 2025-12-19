@@ -10,7 +10,7 @@ import { IsoStandardsView } from './components/IsoStandardsView';
 import { fetchRecordById } from './services/dataService';
 import { generateAnalysis } from './services/geminiService';
 import { MaturityRecord, AnalysisResult, LoadingState } from './types';
-import { Loader2, AlertCircle, FileQuestion, Mail, Calendar, Building2, Sparkles, WifiOff, ArrowRight, Share2, Printer, Check, KeyRound, Settings } from 'lucide-react';
+import { Loader2, AlertCircle, FileQuestion, Mail, Calendar, Building2, Sparkles, WifiOff, ArrowRight, Share2, Printer, Check, KeyRound, Settings, Info } from 'lucide-react';
 
 const App: React.FC = () => {
   const [record, setRecord] = useState<MaturityRecord | null>(null);
@@ -62,17 +62,8 @@ const App: React.FC = () => {
     } catch (e: any) {
       console.error(e);
       setLoadingState(LoadingState.ERROR);
-      if (e.message === "PERMISSION_ERROR") {
-        setErrorMessage("PERMISSION_ERROR");
-      } else {
-        setErrorMessage(e.message || "Connection Error: Unable to reach the database.");
-      }
+      setErrorMessage(e.message || "An unexpected error occurred.");
     }
-  };
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4);
-    setInputId(value);
   };
 
   const handleLogin = (e: React.FormEvent) => {
@@ -80,16 +71,6 @@ const App: React.FC = () => {
     if (inputId.length === 4) {
       window.location.hash = `/report?id=${inputId}`;
     }
-  };
-
-  const handleShare = () => {
-    navigator.clipboard.writeText(window.location.href);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  const handlePrint = () => {
-    window.print();
   };
 
   const renderDashboard = () => {
@@ -115,7 +96,7 @@ const App: React.FC = () => {
                   placeholder="e.g. A9X2" 
                   className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800 font-mono text-lg tracking-[0.2em] uppercase text-center transition-all"
                   value={inputId}
-                  onChange={handleInputChange}
+                  onChange={(e) => setInputId(e.target.value.toUpperCase())}
                   autoFocus
                 />
               </div>
@@ -147,32 +128,51 @@ const App: React.FC = () => {
       );
     }
 
-    if (loadingState === LoadingState.NOT_FOUND) {
-      return (
-        <div className="max-w-md mx-auto mt-20 text-center animate-fade-in">
-          <div className="bg-orange-50 p-8 rounded-2xl border border-orange-100">
-            <FileQuestion className="w-12 h-12 text-orange-500 mx-auto mb-4" />
-            <h3 className="text-xl font-bold text-orange-900 mb-2">Invalid Access Code</h3>
-            <button 
-              onClick={() => { window.location.hash = ''; }}
-              className="mt-6 w-full px-6 py-3 bg-white text-orange-700 font-bold rounded-xl border border-orange-200"
-            >
-              Back to Login
-            </button>
-          </div>
-        </div>
-      );
-    }
-
     if (loadingState === LoadingState.ERROR) {
       const isPermissionError = errorMessage === "PERMISSION_ERROR";
+      const isNetworkError = errorMessage === "NETWORK_ERROR";
+
       return (
-        <div className="max-w-lg mx-auto mt-20 text-center animate-fade-in">
-          <div className="bg-red-50 p-8 rounded-2xl border border-red-100">
-            {isPermissionError ? <Settings className="w-12 h-12 text-red-600 mx-auto mb-4" /> : <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />}
-            <h3 className="text-xl font-bold text-red-900 mb-2">{isPermissionError ? "Permission Error" : "Connection Error"}</h3>
-            <p className="text-red-700 text-sm mb-6">{isPermissionError ? "Google Script needs 'Who has access: Anyone' deployment setting." : errorMessage}</p>
-            <button onClick={() => { window.location.hash = ''; }} className="w-full px-4 py-3 bg-white text-red-700 font-bold rounded-xl border border-red-200">Return to Login</button>
+        <div className="max-w-2xl mx-auto mt-10 animate-fade-in px-4">
+          <div className="bg-white p-8 rounded-3xl border border-red-100 shadow-xl shadow-red-500/5">
+            <div className="flex flex-col items-center text-center mb-8">
+              <div className="p-4 bg-red-50 rounded-full mb-4">
+                {isPermissionError ? <Settings className="w-10 h-10 text-red-600" /> : <AlertCircle className="w-10 h-10 text-red-500" />}
+              </div>
+              <h3 className="text-2xl font-extrabold text-slate-900 mb-2">
+                {isPermissionError ? "Backend Permission Issue" : "Connection Failure"}
+              </h3>
+              <p className="text-slate-500 max-w-md">
+                We couldn't retrieve your report. Please verify the following configuration checklist.
+              </p>
+            </div>
+
+            <div className="bg-slate-50 rounded-2xl p-6 border border-slate-200 mb-8">
+              <h4 className="flex items-center gap-2 font-bold text-slate-800 mb-4 text-sm uppercase tracking-wider">
+                <Info className="w-4 h-4 text-blue-500" /> Troubleshooting Guide
+              </h4>
+              <ul className="space-y-4 text-sm text-slate-600">
+                <li className="flex items-start gap-3">
+                  <div className="mt-1 w-5 h-5 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center flex-shrink-0 font-bold text-[10px]">1</div>
+                  <span><strong>Deployment Access:</strong> Ensure the Google Script is deployed as <strong>'Anyone'</strong> (not 'Anyone with Google Account' or 'Only Me').</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <div className="mt-1 w-5 h-5 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center flex-shrink-0 font-bold text-[10px]">2</div>
+                  <span><strong>URL Accuracy:</strong> Confirm your <code>VITE_GOOGLE_SCRIPT_URL</code> in environment variables ends exactly with <code>/exec</code>.</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <div className="mt-1 w-5 h-5 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center flex-shrink-0 font-bold text-[10px]">3</div>
+                  <span><strong>Script Setup:</strong> Ensure you ran the <strong>'setupSheet'</strong> function from the FMSMD Tool menu in Google Sheets.</span>
+                </li>
+              </ul>
+            </div>
+
+            <button 
+              onClick={() => { window.location.hash = ''; }} 
+              className="w-full py-4 bg-slate-900 text-white font-bold rounded-2xl hover:bg-slate-800 transition-all shadow-lg active:scale-95"
+            >
+              Return to Login
+            </button>
           </div>
         </div>
       );
@@ -201,11 +201,11 @@ const App: React.FC = () => {
               </div>
               <div className="flex items-center gap-4">
                 <div className="hidden md:flex items-center gap-2 print:hidden">
-                    <button onClick={handleShare} className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-600 bg-slate-50 border border-slate-200 rounded-lg">
+                    <button onClick={() => {navigator.clipboard.writeText(window.location.href); setCopied(true); setTimeout(()=>setCopied(false), 2000)}} className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-600 bg-slate-50 border border-slate-200 rounded-lg">
                       {copied ? <Check className="w-4 h-4 text-green-600" /> : <Share2 className="w-4 h-4" />}
                       {copied ? 'Copied' : 'Share'}
                     </button>
-                    <button onClick={handlePrint} className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-600 bg-slate-50 border border-slate-200 rounded-lg"><Printer className="w-4 h-4" /> Print</button>
+                    <button onClick={() => window.print()} className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-600 bg-slate-50 border border-slate-200 rounded-lg"><Printer className="w-4 h-4" /> Print</button>
                 </div>
                 <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 flex items-center gap-4 print:bg-transparent print:border-none">
                   <div className="text-right">
