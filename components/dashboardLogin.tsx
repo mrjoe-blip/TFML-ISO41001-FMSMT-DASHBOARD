@@ -4,8 +4,8 @@ interface DashboardLoginProps {
   onSuccess: (data: any) => void;
 }
 
-function DashboardLogin({ onSuccess }: DashboardLoginProps) {
-  const [code, setCode] = useState("");
+const DashboardLogin: React.FC<DashboardLoginProps> = ({ onSuccess }) => {
+  const [code, setCode] = useState("");   // <-- code is defined here
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -16,10 +16,11 @@ function DashboardLogin({ onSuccess }: DashboardLoginProps) {
       if (json.error) {
         setError(json.error);
       } else {
-        onSuccess(json); // hand data back to App
+        onSuccess(json); // pass data back to App
       }
     } catch (err) {
       setError("Error fetching report");
+      console.error(err);
     }
   };
 
@@ -36,6 +37,6 @@ function DashboardLogin({ onSuccess }: DashboardLoginProps) {
       {error && <p style={{ color: "red" }}>{error}</p>}
     </div>
   );
-}
+};
 
 export default DashboardLogin;
