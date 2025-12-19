@@ -2,34 +2,39 @@ declare var process: any;
 
 import { MaturityRecord } from '../types';
 
-const GAS_API_URL = process.env.VITE_GOOGLE_SCRIPT_URL;
+/**
+ * CLEAN_URL: Attempts to fix common mistakes like missing /exec or trailing slashes.
+ */
+const cleanGasUrl = (url: string | undefined): string => {
+  if (!url) return '';
+  let cleaned = url.trim();
+  if (cleaned.endsWith('/')) cleaned = cleaned.slice(0, -1);
+  if (!cleaned.endsWith('/exec')) cleaned += '/exec';
+  return cleaned;
+};
+
+const RAW_API_URL = process.env.VITE_GOOGLE_SCRIPT_URL;
+const GAS_API_URL = cleanGasUrl(RAW_API_URL);
 
 export const fetchRecordById = async (id: string): Promise<MaturityRecord | null> => {
-  const apiUrl = GAS_API_URL;
+  if (id === 'DEMO') return fetchDemoRecord();
 
-  if (!apiUrl || id === 'DEMO') {
-    return fetchDemoRecord();
-  }
-
-  // Ensure URL is correctly formatted for a Web App
-  if (!apiUrl.includes('/exec')) {
-    console.error("Configuration Error: Google Script URL must end in '/exec'.");
+  if (!GAS_API_URL || GAS_API_URL === '/exec') {
+    console.error("Configuration Error: VITE_GOOGLE_SCRIPT_URL is missing.");
     throw new Error("DEPLOYMENT_CONFIG_ERROR");
   }
 
   try {
     const sanitizedId = id.toUpperCase().trim();
-    const fetchUrl = `${apiUrl}?id=${sanitizedId}`;
+    const fetchUrl = `${GAS_API_URL}?id=${sanitizedId}`;
     
-    // Using redirect: 'follow' is mandatory for Google Script web apps
-    // Also using cache: 'no-store' to ensure we get fresh data
+    console.log(`[DEBUG] Attempting fetch from: ${fetchUrl}`);
+
     const response = await fetch(fetchUrl, {
       method: 'GET',
       mode: 'cors',
       redirect: 'follow',
-      headers: {
-        'Accept': 'application/json'
-      }
+      headers: { 'Accept': 'application/json' }
     });
     
     if (!response.ok) {
@@ -39,9 +44,8 @@ export const fetchRecordById = async (id: string): Promise<MaturityRecord | null
 
     const text = await response.text();
     
-    // Detect HTML responses which indicate a redirect to a login page (Permission Error)
     if (text.trim().startsWith('<!DOCTYPE html>') || text.includes('accounts.google.com')) {
-      console.error("Permission/Deployment Error: Received HTML instead of JSON. Ensure script is deployed as 'Anyone'.");
+      console.error(`[DEBUG] Permission Error. Fetch URL was: ${fetchUrl}`);
       throw new Error("PERMISSION_ERROR");
     }
 
@@ -53,14 +57,15 @@ export const fetchRecordById = async (id: string): Promise<MaturityRecord | null
       }
       return data as MaturityRecord;
     } catch (parseErr) {
-      console.error("JSON Parse Error:", text);
+      console.error("[DEBUG] JSON Parse Error. Raw text start:", text.substring(0, 100));
       throw new Error("Invalid response format from server.");
     }
 
   } catch (error: any) {
     console.error("Data Fetch Error:", error);
     if (error.message === 'Failed to fetch') {
-      throw new Error("NETWORK_ERROR");
+      // Return more context about the current URL to the UI error handler
+      throw new Error(`NETWORK_ERROR|URL:${GAS_API_URL}`);
     }
     throw error;
   }

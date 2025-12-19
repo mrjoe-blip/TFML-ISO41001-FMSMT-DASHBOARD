@@ -1,6 +1,6 @@
 /**
  * ===========================================================================
- * ISO FM DIAGNOSTIC BACKEND - V14 (Rich V8 Template + V13 Safety)
+ * ISO FM DIAGNOSTIC BACKEND - V15 (High-Quality Auditor Analysis)
  * ===========================================================================
  */
 
@@ -61,7 +61,7 @@ function setupSheet(silent = false) {
 
 function onFormSubmitTrigger(e) {
   const lock = LockService.getScriptLock();
-  if (!lock.tryLock(45000)) return;
+  if (!lock.tryLock(60000)) return;
 
   try {
     const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
@@ -100,10 +100,145 @@ function onFormSubmitTrigger(e) {
       }
     }
   } catch (err) {
-    Logger.log("Critical Error in onFormSubmit: " + err.toString());
+    Logger.log("Critical Error: " + err.toString());
   } finally {
     lock.releaseLock();
   }
+}
+
+function callGeminiForAnalysis(formData) {
+  const apiKey = PropertiesService.getScriptProperties().getProperty(API_KEY_NAME);
+  if (!apiKey) return null;
+
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${apiKey}`;
+  
+  const schema = {
+    type: "OBJECT",
+    properties: {
+      analysisResult: { type: "STRING", description: "VERY SHORT title for email subject (max 40 chars)" },
+      analysisScore: { type: "INTEGER" },
+      complianceLevel: { type: "STRING" },
+      reasons: { type: "ARRAY", items: { type: "STRING" }, description: "List of gaps prefixed with [GAP] and clause references" },
+      recommendations: { type: "ARRAY", items: { type: "STRING" }, description: "List of actions prefixed with [ACTION]" },
+      nextStepsGuide: { type: "STRING" },
+      clauseScores: {
+        type: "OBJECT",
+        properties: {
+          planningScore: { type: "INTEGER" },
+          supportScore: { type: "INTEGER" },
+          operationScore: { type: "INTEGER" },
+          performanceScore: { type: "INTEGER" }
+        },
+        required: ["planningScore", "supportScore", "operationScore", "performanceScore"]
+      }
+    },
+    required: ["analysisResult", "analysisScore", "complianceLevel", "clauseScores", "reasons", "recommendations", "nextStepsGuide"]
+  };
+
+  const prompt = `Act as a Senior ISO 41001 Lead Auditor. Analyze this FM assessment data: ${formData}. 
+  1. Identify 5 specific gaps citing clauses (e.g. 6.1, 8.1). Prefix each with "[GAP] ".
+  2. Provide 5 strategic actions. Prefix each with "[ACTION] ".
+  3. Keep "analysisResult" extremely short for the email subject line.
+  4. Maturity Level should be "Level X: [Title]".`;
+
+  const payload = {
+    contents: [{ parts: [{ text: prompt }] }],
+    generationConfig: { responseMimeType: "application/json", responseSchema: schema }
+  };
+
+  for (let i = 0; i < 5; i++) {
+    try {
+      const resp = UrlFetchApp.fetch(url, {
+        method: 'post', contentType: 'application/json', payload: JSON.stringify(payload), muteHttpExceptions: true
+      });
+      if (resp.getResponseCode() === 200) {
+        return JSON.parse(JSON.parse(resp.getContentText()).candidates[0].content.parts[0].text);
+      }
+      Utilities.sleep(2000 * Math.pow(2, i));
+    } catch (e) { Utilities.sleep(2000); }
+  }
+  return null;
+}
+
+function sendEmailReport(email, name, code, analysis) {
+  const dashboardLink = `${DASHBOARD_BASE_URL}/#/report?id=${code}`;
+  
+  // Truncate subject to prevent 'Argument too large'
+  let subjectText = analysis.analysisResult || "Maturity Report";
+  if (subjectText.length > 50) subjectText = subjectText.substring(0, 47) + "...";
+  const subject = `ISO 41001 Assessment Report: ${subjectText}`;
+  
+  const resultIcon = analysis.analysisScore >= 70 ? '✅' : analysis.analysisScore >= 40 ? '⚠️' : '❌';
+
+  const htmlBody = `
+    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+    <div style="max-width: 600px; margin: auto; padding: 25px; border: 1px solid #ddd; border-radius: 12px; background-color: #ffffff;">
+        <h2 style="color: #0056b3; border-bottom: 3px solid #0056b3; padding-bottom: 10px; text-align: center;">
+            Facilities Management Assessment Report
+        </h2>
+        
+        <div style="text-align: center; margin-bottom: 25px;">
+            <img src="https://raw.githubusercontent.com/mrjoe-blip/TFML-ISO41001-FMSMT-DASHBOARD/main/public/iso-fm-logo.png" 
+                 alt="ISOFM Academy Logo" width="150" style="display: block; margin: 0 auto;">
+        </div>
+
+        <div style="background-color: #f8fafc; padding: 20px; border-radius: 8px; margin-bottom: 25px; border-left: 6px solid #2563eb;">
+            <h3 style="color: #1e293b; margin: 0;">${resultIcon} Definitive Result: ${analysis.analysisResult}</h3>
+            <p style="margin-top: 8px; font-size: 15px;">
+                <strong>Maturity Level:</strong> ${analysis.complianceLevel} (Score: ${analysis.analysisScore}/100)
+            </p>
+        </div>
+        
+        <p>Dear ${name},<br><br>Based on your assessment entries, the following is a detailed auditor-grade analysis report:</p>
+
+        <div style="background: #f1f5f9; padding: 20px; text-align: center; border: 2px dashed #0056b3; border-radius: 12px; margin: 30px 0;">
+          <p style="margin: 0 0 5px 0; text-transform: uppercase; font-size: 11px; color: #64748b; font-weight: bold;">Secure Dashboard Access Code</p>
+          <span style="font-family: 'Courier New', monospace; font-size: 38px; font-weight: 800; color: #0056b3; letter-spacing: 8px;">${code}</span>
+        </div>
+
+        <h4 style="color: #2563eb; margin-bottom: 15px; display: flex; align-items: center;">
+           <span style="font-size: 20px; margin-right: 10px;">🔍</span> Core Reasons for Result (Gaps):
+        </h4>
+        <div style="border: 1px solid #fee2e2; padding: 15px; border-radius: 8px; background-color: #fef2f2; margin-bottom: 25px;">
+            ${(analysis.reasons || []).map(r => `<p style="margin-bottom: 12px; color: #b91c1c; font-size: 14px; line-height: 1.5;"><strong>${r.includes('[GAP]') ? '' : '[GAP] '}</strong>${r}</p>`).join('')}
+        </div>
+
+        <h4 style="color: #2563eb; margin-bottom: 15px; display: flex; align-items: center;">
+           <span style="font-size: 20px; margin-right: 10px;">💡</span> Actionable Recommendations:
+        </h4>
+        <div style="border: 1px solid #fef3c7; padding: 15px; border-radius: 8px; background-color: #fffbeb; margin-bottom: 25px;">
+            ${(analysis.recommendations || []).map(rec => `<p style="margin-bottom: 12px; color: #92400e; font-size: 14px; line-height: 1.5;"><strong>${rec.includes('[ACTION]') ? '' : '[ACTION] '}</strong>${rec}</p>`).join('')}
+        </div>
+        
+        <h4 style="color: #2563eb; margin-bottom: 15px;">🚀 Next Steps Guide: Expert Consultation</h4>
+        <p style="padding: 15px; background-color: #eff6ff; border-radius: 8px; border-left: 5px solid #2563eb; font-size: 14px; color: #1e3a8a;">
+            ${analysis.nextStepsGuide}
+        </p>
+        
+        <div style="text-align: center; margin: 35px 0;">
+            <a href="https://isofmacademy.ng/consult/" 
+                style="display: inline-block; padding: 16px 32px; background-color: #10b981; color: white; text-decoration: none; border-radius: 10px; font-weight: bold; font-size: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                Contact ISOFM Academy Consultant
+            </a>
+        </div>
+
+        <div style="text-align: center; margin-top: 45px; border-top: 1px solid #e2e8f0; padding-top: 30px;">
+            <h3 style="margin-bottom: 10px; color: #1e293b;">Interactive Visualization Available</h3>
+            <p style="color: #64748b; font-size: 14px; margin-bottom: 20px;">Use your access code <strong>${code}</strong> to view your radar charts and benchmarks on our secure dashboard.</p>
+            <a href="${dashboardLink}" 
+                style="display: inline-block; padding: 14px 28px; background-color: #2563eb; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
+                Open Interactive Dashboard
+            </a>
+        </div>
+        
+        <p style="margin-top: 40px; font-size: 11px; color: #94a3b8; text-align: center;">
+            © ${new Date().getFullYear()} ISO FM Academy. Analysis powered by Gemini 3 Strategic AI.
+        </p>
+    </div>
+    </body>
+  `;
+
+  MailApp.sendEmail({ to: email, subject: subject, htmlBody: htmlBody });
 }
 
 function doGet(e) {
@@ -144,147 +279,6 @@ function doGet(e) {
   } catch (err) {
     return jsonResponse({ error: err.toString() }, 500);
   }
-}
-
-function callGeminiForAnalysis(formData) {
-  const apiKey = PropertiesService.getScriptProperties().getProperty(API_KEY_NAME);
-  if (!apiKey) return null;
-
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${apiKey}`;
-  
-  const schema = {
-    type: "OBJECT",
-    properties: {
-      analysisResult: { type: "STRING", description: "VERY SHORT status (max 40 chars)" },
-      analysisScore: { type: "INTEGER" },
-      complianceLevel: { type: "STRING" },
-      reasons: { type: "ARRAY", items: { type: "STRING" } },
-      recommendations: { type: "ARRAY", items: { type: "STRING" } },
-      nextStepsGuide: { type: "STRING" },
-      clauseScores: {
-        type: "OBJECT",
-        properties: {
-          planningScore: { type: "INTEGER" },
-          supportScore: { type: "INTEGER" },
-          operationScore: { type: "INTEGER" },
-          performanceScore: { type: "INTEGER" }
-        },
-        required: ["planningScore", "supportScore", "operationScore", "performanceScore"]
-      }
-    },
-    required: ["analysisResult", "analysisScore", "complianceLevel", "clauseScores", "reasons", "recommendations", "nextStepsGuide"]
-  };
-
-  const payload = {
-    contents: [{ parts: [{ text: `Act as Senior ISO 41001 Auditor. Analyze: ${formData}. Keep result title brief.` }] }],
-    generationConfig: { responseMimeType: "application/json", responseSchema: schema }
-  };
-
-  for (let i = 0; i < 5; i++) {
-    try {
-      const resp = UrlFetchApp.fetch(url, {
-        method: 'post', contentType: 'application/json', payload: JSON.stringify(payload), muteHttpExceptions: true
-      });
-      if (resp.getResponseCode() === 200) {
-        return JSON.parse(JSON.parse(resp.getContentText()).candidates[0].content.parts[0].text);
-      }
-      Utilities.sleep(2000 * Math.pow(2, i));
-    } catch (e) { Utilities.sleep(2000); }
-  }
-  return null;
-}
-
-function extractEmailAndName(rowData) {
-  let email = '', name = '';
-  ['Email Address', 'Email', 'Your Email'].forEach(k => {
-    if (rowData[k] && rowData[k][0] && rowData[k][0].includes('@')) email = rowData[k][0].trim();
-  });
-  ['Name', 'Full Name', 'Your Name'].forEach(k => {
-    if (rowData[k] && rowData[k][0]) name = rowData[k][0].trim();
-  });
-  if (!email) {
-    Object.keys(rowData).forEach(k => {
-      const val = rowData[k][0];
-      if (val && typeof val === 'string' && val.includes('@') && val.includes('.')) email = val.trim();
-    });
-  }
-  return { email, name: name || "Client" };
-}
-
-function sendEmailReport(email, name, code, analysis) {
-  const dashboardLink = `${DASHBOARD_BASE_URL}/#/report?id=${code}`;
-  
-  // V13 Safety: Truncate subject
-  let resultText = (analysis.analysisResult || "Assessment Complete").toString();
-  if (resultText.length > 60) resultText = resultText.substring(0, 57) + "...";
-  const subject = `ISO 41001 Maturity Report: ${resultText}`;
-  
-  const resultIcon = analysis.analysisScore >= 70 ? '✅' : analysis.analysisScore >= 40 ? '⚠️' : '❌';
-
-  const htmlBody = `
-    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-    <div style="max-width: 600px; margin: auto; padding: 25px; border: 1px solid #ddd; border-radius: 12px; background-color: #fcfcfc;">
-        <h2 style="color: #0056b3; border-bottom: 3px solid #0056b3; padding-bottom: 10px; text-align: center;">
-            Facilities Management Assessment Report
-        </h2>
-        
-        <div style="text-align: center; margin-bottom: 25px;">
-            <img src="https://raw.githubusercontent.com/mrjoe-blip/TFML-ISO41001-FMSMT-DASHBOARD/main/public/iso-fm-logo.png" 
-                 alt="ISOFM Academy Logo" width="160" style="display: block; margin: 0 auto;">
-        </div>
-
-        <div style="background-color: #e8f5e9; padding: 18px; border-radius: 8px; margin-bottom: 25px; border-left: 6px solid #28a745;">
-            <h3 style="color: #28a745; margin: 0;">${resultIcon} Definitive Result: ${analysis.analysisResult}</h3>
-            <p style="margin-top: 5px; font-size: 14px;">
-                <strong>Maturity Level:</strong> ${analysis.complianceLevel} (Score: ${analysis.analysisScore}/100)
-            </p>
-        </div>
-        
-        <p>Dear ${name},<br><br>Your assessment is complete. Below are the core findings and strategic recommendations for your organization.</p>
-
-        <div style="background: #ffffff; padding: 20px; text-align: center; border: 2px dashed #0056b3; border-radius: 12px; margin: 30px 0;">
-          <p style="margin: 0 0 5px 0; text-transform: uppercase; font-size: 11px; color: #666; font-weight: bold;">Your Dashboard Access Code</p>
-          <span style="font-family: 'Courier New', monospace; font-size: 36px; font-weight: 800; color: #0056b3; letter-spacing: 6px;">${code}</span>
-        </div>
-
-        <h4 style="color: #007bff; margin-top: 30px;">🔍 Core Reasons for Result:</h4>
-        <ul style="list-style-type: none; padding-left: 0; border: 1px solid #ffdddd; padding: 15px; border-radius: 8px; background-color: #fff8f8;">
-            ${(analysis.reasons || []).map(r => `<li style="margin-bottom: 10px; color: #dc3545;"><strong>[GAP]</strong> ${r}</li>`).join('')}
-        </ul>
-
-        <h4 style="color: #007bff; margin-top: 25px;">💡 Actionable Recommendations:</h4>
-        <ul style="list-style-type: none; padding-left: 0; border: 1px solid #fff3cd; padding: 15px; border-radius: 8px; background-color: #fffceb;">
-            ${(analysis.recommendations || []).map(rec => `<li style="margin-bottom: 10px; color: #ff9800;"><strong>[ACTION]</strong> ${rec}</li>`).join('')}
-        </ul>
-        
-        <h4 style="color: #007bff; margin-top: 25px;">🚀 Next Steps: Expert Consultation</h4>
-        <p style="padding: 15px; background-color: #e6f7ff; border-radius: 8px; border-left: 5px solid #007bff; font-size: 14px;">
-            ${analysis.nextStepsGuide}
-        </p>
-        
-        <div style="text-align: center; margin: 30px 0;">
-            <a href="https://isofmacademy.ng/consult/" 
-                style="display: inline-block; padding: 14px 28px; background-color: #10b981; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                Contact ISOFM Academy Expert
-            </a>
-        </div>
-
-        <div style="text-align: center; margin-top: 40px; border-top: 1px dashed #cbd5e1; padding-top: 25px;">
-            <p style="font-size: 14px; color: #64748b; margin-bottom: 20px;">View your full interactive analysis with benchmarks and radar charts:</p>
-            <a href="${dashboardLink}" 
-                style="display: inline-block; padding: 14px 28px; background-color: #2563eb; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
-                Open Interactive Dashboard
-            </a>
-        </div>
-        
-        <p style="margin-top: 40px; font-size: 11px; color: #94a3b8; text-align: center;">
-            © ${new Date().getFullYear()} ISO FM Academy. Powered by Gemini 3 Strategic AI.
-        </p>
-    </div>
-    </body>
-  `;
-
-  MailApp.sendEmail({ to: email, subject: subject, htmlBody: htmlBody });
 }
 
 function jsonResponse(data, status = 200) {

@@ -10,7 +10,7 @@ import { IsoStandardsView } from './components/IsoStandardsView';
 import { fetchRecordById } from './services/dataService';
 import { generateAnalysis } from './services/geminiService';
 import { MaturityRecord, AnalysisResult, LoadingState } from './types';
-import { Loader2, AlertCircle, FileQuestion, Mail, Calendar, Building2, Sparkles, WifiOff, ArrowRight, Share2, Printer, Check, KeyRound, Settings, Info } from 'lucide-react';
+import { Loader2, AlertCircle, FileQuestion, Mail, Calendar, Building2, Sparkles, WifiOff, ArrowRight, Share2, Printer, Check, KeyRound, Settings, Info, Copy } from 'lucide-react';
 
 const App: React.FC = () => {
   const [record, setRecord] = useState<MaturityRecord | null>(null);
@@ -93,7 +93,7 @@ const App: React.FC = () => {
                 <input 
                   type="text" 
                   maxLength={4}
-                  placeholder="e.g. A9X2" 
+                  placeholder="XXXX" 
                   className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800 font-mono text-lg tracking-[0.2em] uppercase text-center transition-all"
                   value={inputId}
                   onChange={(e) => setInputId(e.target.value.toUpperCase())}
@@ -130,10 +130,11 @@ const App: React.FC = () => {
 
     if (loadingState === LoadingState.ERROR) {
       const isPermissionError = errorMessage === "PERMISSION_ERROR";
-      const isNetworkError = errorMessage === "NETWORK_ERROR";
+      const isNetworkError = errorMessage.startsWith("NETWORK_ERROR");
+      const currentUrl = errorMessage.includes("URL:") ? errorMessage.split("URL:")[1] : "Not found";
 
       return (
-        <div className="max-w-2xl mx-auto mt-10 animate-fade-in px-4">
+        <div className="max-w-2xl mx-auto mt-10 animate-fade-in px-4 pb-20">
           <div className="bg-white p-8 rounded-3xl border border-red-100 shadow-xl shadow-red-500/5">
             <div className="flex flex-col items-center text-center mb-8">
               <div className="p-4 bg-red-50 rounded-full mb-4">
@@ -143,26 +144,25 @@ const App: React.FC = () => {
                 {isPermissionError ? "Backend Permission Issue" : "Connection Failure"}
               </h3>
               <p className="text-slate-500 max-w-md">
-                We couldn't retrieve your report. Please verify the following configuration checklist.
+                We couldn't retrieve your report. Please check the following details.
               </p>
             </div>
 
-            <div className="bg-slate-50 rounded-2xl p-6 border border-slate-200 mb-8">
+            <div className="bg-slate-50 rounded-2xl p-6 border border-slate-200 mb-6">
               <h4 className="flex items-center gap-2 font-bold text-slate-800 mb-4 text-sm uppercase tracking-wider">
-                <Info className="w-4 h-4 text-blue-500" /> Troubleshooting Guide
+                <Info className="w-4 h-4 text-blue-500" /> Active API URL Configuration
               </h4>
+              <div className="bg-slate-900 text-slate-300 p-3 rounded-lg font-mono text-[10px] break-all mb-4 border border-slate-700">
+                {currentUrl}
+              </div>
               <ul className="space-y-4 text-sm text-slate-600">
                 <li className="flex items-start gap-3">
                   <div className="mt-1 w-5 h-5 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center flex-shrink-0 font-bold text-[10px]">1</div>
-                  <span><strong>Deployment Access:</strong> Ensure the Google Script is deployed as <strong>'Anyone'</strong> (not 'Anyone with Google Account' or 'Only Me').</span>
+                  <span><strong>Deployment Access:</strong> Ensure Google Script is set to <strong>"Execute as: Me"</strong> and <strong>"Who has access: Anyone"</strong>.</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <div className="mt-1 w-5 h-5 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center flex-shrink-0 font-bold text-[10px]">2</div>
-                  <span><strong>URL Accuracy:</strong> Confirm your <code>VITE_GOOGLE_SCRIPT_URL</code> in environment variables ends exactly with <code>/exec</code>.</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <div className="mt-1 w-5 h-5 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center flex-shrink-0 font-bold text-[10px]">3</div>
-                  <span><strong>Script Setup:</strong> Ensure you ran the <strong>'setupSheet'</strong> function from the FMSMD Tool menu in Google Sheets.</span>
+                  <span><strong>URL Verification:</strong> The URL above must end in <code>/exec</code>. If it doesn't, update your Vercel Environment Variables.</span>
                 </li>
               </ul>
             </div>
@@ -202,7 +202,7 @@ const App: React.FC = () => {
               <div className="flex items-center gap-4">
                 <div className="hidden md:flex items-center gap-2 print:hidden">
                     <button onClick={() => {navigator.clipboard.writeText(window.location.href); setCopied(true); setTimeout(()=>setCopied(false), 2000)}} className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-600 bg-slate-50 border border-slate-200 rounded-lg">
-                      {copied ? <Check className="w-4 h-4 text-green-600" /> : <Share2 className="w-4 h-4" />}
+                      {copied ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
                       {copied ? 'Copied' : 'Share'}
                     </button>
                     <button onClick={() => window.print()} className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-600 bg-slate-50 border border-slate-200 rounded-lg"><Printer className="w-4 h-4" /> Print</button>
