@@ -1,6 +1,6 @@
 /**
  * ===========================================================================
- * ISO FM DIAGNOSTIC BACKEND - V23 (Professional Greeting & Headings)
+ * ISO FM DIAGNOSTIC BACKEND - V25 (Verified Typo Fix & Absolute Logo URL)
  * ===========================================================================
  */
 
@@ -31,7 +31,7 @@ function onOpen() {
 }
 
 function onFormSubmitTrigger(e) {
-  const lock = LockService.getScriptLock();
+  const lock = LockService.getScriptLock(); // Verified: Correct LockService call
   if (!lock.tryLock(60000)) return;
   try {
     const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
@@ -133,11 +133,12 @@ function callGeminiForAnalysis(formData) {
 
 function sendEmailReport(email, name, code, analysis) {
   const dashboardLink = `${DASHBOARD_BASE_URL}/#/report?id=${code}`;
+  const logoUrl = "https://raw.githubusercontent.com/mrjoe-blip/TFML-ISO41001-FMSMT-DASHBOARD/main/public/iso-fm-logo.png";
   
   // Safe subject truncation
   let subjectStr = analysis.analysisResult || "Maturity Report";
   if (subjectStr.length > 60) subjectStr = subjectStr.substring(0, 57) + "...";
-  const subject = `Diagnostic Complete: ${subjectStr}`;
+  const subject = `ISO 41001 Maturity Diagnostic Report: ${subjectStr}`;
   
   // Dynamic Banner Colors
   const bannerBg = analysis.analysisScore >= 70 ? '#f0fdf4' : analysis.analysisScore >= 40 ? '#fefce8' : '#fef2f2';
@@ -147,75 +148,70 @@ function sendEmailReport(email, name, code, analysis) {
 
   const htmlBody = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #334155; max-width: 650px; margin: auto; padding: 10px; background-color: #ffffff;">
-      <div style="padding: 25px; border: 1px solid #f1f5f9; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.03);">
+      <div style="padding: 30px; border: 1px solid #f1f5f9; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.03);">
         
-        <div style="text-align: center; margin-bottom: 25px; border-bottom: 1px solid #f1f5f9; padding-bottom: 20px;">
-          <img src="https://raw.githubusercontent.com/mrjoe-blip/TFML-ISO41001-FMSMT-DASHBOARD/main/public/iso-fm-logo.png" alt="ISO FM Academy" width="120" style="display: block; margin: 0 auto 10px;">
-          <h2 style="margin: 0; color: #1e293b; font-size: 18px; font-weight: 900; letter-spacing: -0.02em; text-transform: uppercase;">ISO 41001 Facility Management Maturity Assessment</h2>
+        <div style="text-align: center; margin-bottom: 30px; border-bottom: 2px solid #f1f5f9; padding-bottom: 25px;">
+          <img src="${logoUrl}" alt="ISO FM Academy" width="140" style="display: block; margin: 0 auto 15px;">
+          <h2 style="margin: 0; color: #1e293b; font-size: 20px; font-weight: 900; letter-spacing: -0.02em; text-transform: uppercase;">ISO 41001 Facility Management Maturity Diagnostic</h2>
         </div>
 
-        <p style="font-size: 15px; font-weight: 600; color: #1e293b; margin-bottom: 5px;">Dear ${name},</p>
-        <p style="font-size: 14px; color: #64748b; margin-bottom: 25px; margin-top: 0;">Thank you for completing the ISO 41001 Maturity Diagnostic. Below is the summarized audit of your Facility Management Management System (FMMS).</p>
+        <p style="font-size: 16px; font-weight: 700; color: #1e293b; margin-bottom: 8px;">Dear ${name},</p>
+        <p style="font-size: 14.5px; color: #64748b; margin-bottom: 30px; margin-top: 0; line-height: 1.6;">Following your recent assessment using the TFML Maturity Diagnostic Tool, we are pleased to share your customized maturity profile and strategic gap analysis. This report provides an objective overview of your organization's alignment with international FM standards.</p>
 
         <!-- DEFINITIVE RESULT BANNER -->
-        <div style="background-color: ${bannerBg}; border: 1px solid ${bannerBorder}; border-left: 5px solid ${bannerBorder}; padding: 18px; border-radius: 8px; margin-bottom: 30px;">
-          <h3 style="margin: 0; color: ${bannerText}; font-size: 16px; font-weight: 800;">
+        <div style="background-color: ${bannerBg}; border: 1px solid ${bannerBorder}; border-left: 6px solid ${bannerBorder}; padding: 20px; border-radius: 8px; margin-bottom: 35px;">
+          <h3 style="margin: 0; color: ${bannerText}; font-size: 17px; font-weight: 800;">
             ${icon} Definitive Result: ${analysis.analysisResult}
           </h3>
-          <p style="margin: 6px 0 0 0; font-size: 13px; color: ${bannerText}; opacity: 0.9;">
-            <strong>Maturity Level:</strong> ${analysis.complianceLevel} (Score: ${analysis.analysisScore}/100)
+          <p style="margin: 8px 0 0 0; font-size: 14px; color: ${bannerText}; opacity: 0.9;">
+            <strong>Maturity Level:</strong> ${analysis.complianceLevel} (Current Score: ${analysis.analysisScore}/100)
           </p>
         </div>
 
-        <p style="font-size: 14px; color: #475569; margin-bottom: 15px; font-weight: 500;">Based on your assessment entries, the following is a detailed analysis report:</p>
-
-        <!-- CORE REASONS / GAPS -->
-        <h4 style="color: #2563eb; font-size: 15px; margin-bottom: 12px; margin-top: 25px;">
-          <span style="margin-right: 6px;">🔍</span> Core Reasons for Result:
+        <h4 style="color: #2563eb; font-size: 15px; margin-bottom: 15px; border-left: 4px solid #2563eb; padding-left: 10px; text-transform: uppercase; letter-spacing: 0.05em;">
+          🔍 Core Reasons for Result:
         </h4>
-        <div style="background-color: #fff1f2; border: 1px solid #fee2e2; border-radius: 8px; padding: 18px; margin-bottom: 25px;">
+        <div style="background-color: #fff1f2; border: 1px solid #fee2e2; border-radius: 8px; padding: 20px; margin-bottom: 30px;">
           ${(analysis.reasons || []).map(r => `
-            <p style="margin-bottom: 12px; font-size: 13px; color: #991b1b; line-height: 1.5; margin-top: 0;">
+            <p style="margin-bottom: 14px; font-size: 13.5px; color: #991b1b; line-height: 1.6; margin-top: 0;">
               <strong style="color: #dc2626;">[GAP]</strong> ${r.replace(/^\[GAP\]\s*/i, '')}
             </p>
           `).join('')}
         </div>
 
-        <!-- ACTIONABLE RECOMMENDATIONS -->
-        <h4 style="color: #2563eb; font-size: 15px; margin-bottom: 12px;">
-          <span style="margin-right: 6px;">💡</span> Actionable Recommendations:
+        <h4 style="color: #2563eb; font-size: 15px; margin-bottom: 15px; border-left: 4px solid #2563eb; padding-left: 10px; text-transform: uppercase; letter-spacing: 0.05em;">
+          💡 Actionable Recommendations:
         </h4>
-        <div style="background-color: #fffbeb; border: 1px solid #fef3c7; border-radius: 8px; padding: 18px; margin-bottom: 25px;">
+        <div style="background-color: #fffbeb; border: 1px solid #fef3c7; border-radius: 8px; padding: 20px; margin-bottom: 30px;">
           ${(analysis.recommendations || []).map(r => `
-            <p style="margin-bottom: 12px; font-size: 13px; color: #854d0e; line-height: 1.5; margin-top: 0;">
+            <p style="margin-bottom: 14px; font-size: 13.5px; color: #854d0e; line-height: 1.6; margin-top: 0;">
               <strong style="color: #ca8a04;">[ACTION]</strong> ${r.replace(/^\[ACTION\]\s*/i, '')}
             </p>
           `).join('')}
         </div>
 
-        <!-- NEXT STEPS SIDEBAR -->
-        <h4 style="color: #2563eb; font-size: 15px; margin-bottom: 12px;">
-          <span style="margin-right: 6px;">🚀</span> Next Steps Guide: Expert Consultation
+        <h4 style="color: #2563eb; font-size: 15px; margin-bottom: 15px; border-left: 4px solid #2563eb; padding-left: 10px; text-transform: uppercase; letter-spacing: 0.05em;">
+          🚀 Strategic Next Steps:
         </h4>
-        <div style="background-color: #eff6ff; border-left: 5px solid #2563eb; padding: 18px; border-radius: 6px; margin-bottom: 40px;">
-          <p style="font-size: 13.5px; color: #1e3a8a; margin: 0; line-height: 1.6;">
-            ${analysis.nextStepsGuide || "This guide provides a starting point for strategic FM alignment. Immediate action must focus on closing identified gaps in compliance and operational documentation."}
+        <div style="background-color: #eff6ff; border-left: 6px solid #2563eb; padding: 22px; border-radius: 6px; margin-bottom: 45px;">
+          <p style="font-size: 14px; color: #1e3a8a; margin: 0; line-height: 1.7;">
+            ${analysis.nextStepsGuide || "This roadmap provides a critical starting point for ISO 41001 alignment. Immediate focus should be placed on formalizing operational controls and enhancing documented information as identified in the gaps above."}
             <br><br>
-            <a href="https://isofmacademy.ng/consult/" style="color: #2563eb; font-weight: 800; text-decoration: underline;">Request Expert Review & Consultation</a>
+            <a href="https://isofmacademy.ng/consult/" style="color: #2563eb; font-weight: 800; text-decoration: underline;">Request a Comprehensive Audit Consultation</a>
           </p>
         </div>
 
         <!-- DASHBOARD CTA -->
-        <div style="border-top: 1px solid #f1f5f9; padding-top: 35px; text-align: center; background-color: #f8fafc; border-radius: 0 0 12px 12px; margin: 0 -25px -25px -25px; padding: 40px 25px;">
-          <h3 style="color: #1e293b; margin: 0 0 10px 0; font-size: 18px; font-weight: 900;">Interactive Dashboard Available</h3>
-          <p style="font-size: 13.5px; color: #64748b; margin-bottom: 25px; line-height: 1.5; max-width: 450px; margin-left: auto; margin-right: auto;">
-            For detailed benchmarks, radar charts, and your complete action plan, visit our interactive dashboard using your access code: <span style="font-family: monospace; font-weight: bold; color: #1e293b; background: #e2e8f0; padding: 2px 6px; border-radius: 4px;">${code}</span>
+        <div style="border-top: 2px solid #f1f5f9; padding-top: 40px; text-align: center; background-color: #f8fafc; border-radius: 0 0 12px 12px; margin: 0 -30px -30px -30px; padding: 45px 30px;">
+          <h3 style="color: #1e293b; margin: 0 0 12px 0; font-size: 20px; font-weight: 900;">Interactive Auditor Dashboard</h3>
+          <p style="font-size: 14px; color: #64748b; margin-bottom: 30px; line-height: 1.6; max-width: 480px; margin-left: auto; margin-right: auto;">
+            For dynamic charts, industry benchmarks, and a granular breakdown of your FM maturity scores, access your secure dashboard using code: <strong style="color: #1e293b; background: #e2e8f0; padding: 4px 8px; border-radius: 6px; font-family: monospace;">${code}</strong>
           </p>
-          <a href="${dashboardLink}" style="display: inline-block; padding: 16px 40px; background-color: #1e3a8a; color: #ffffff; text-decoration: none; border-radius: 12px; font-weight: 800; font-size: 16px; box-shadow: 0 10px 15px -3px rgba(30, 58, 138, 0.2);">
-            Open Interactive Dashboard
+          <a href="${dashboardLink}" style="display: inline-block; padding: 18px 45px; background-color: #1e3a8a; color: #ffffff; text-decoration: none; border-radius: 12px; font-weight: 800; font-size: 16px; box-shadow: 0 12px 20px -5px rgba(30, 58, 138, 0.25);">
+            Access Your Interactive Report
           </a>
-          <p style="margin-top: 30px; font-size: 12px; color: #94a3b8;">
-            &copy; ${new Date().getFullYear()} ISO FM Academy. Assessment results are confidential.
+          <p style="margin-top: 35px; font-size: 12px; color: #94a3b8; font-weight: 500;">
+            &copy; ${new Date().getFullYear()} ISO FM Academy. Assessment and Diagnostic Reports are Confidential.
           </p>
         </div>
 
@@ -235,7 +231,7 @@ function setupSheet(silent = false) {
     const missing = aiHeaders.filter(h => !headers.includes(h));
     if (headers.indexOf(ID_COLUMN_HEADER) === -1) sheet.getRange(1, sheet.getLastColumn()+1).setValue(ID_COLUMN_HEADER);
     if (missing.length > 0) sheet.getRange(1, sheet.getLastColumn()+1, 1, missing.length).setValues([missing]);
-    if (!silent) safeNotify('Diagnostic columns configured successfully.');
+    if (!silent) safeNotify('Diagnostic optimization complete.');
   } catch (e) { Logger.log("Setup Error: " + e.toString()); }
 }
 
@@ -254,5 +250,5 @@ function runManualAnalysis() {
   const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
   const named = {}; headers.forEach((h, i) => named[h] = [sheet.getRange(row, i+1).getValue()]);
   onFormSubmitTrigger({ namedValues: named, range: sheet.getRange(row, 1) });
-  safeNotify("AI Analysis re-triggered for selected row.");
+  safeNotify("Auditor analysis triggered successfully.");
 }

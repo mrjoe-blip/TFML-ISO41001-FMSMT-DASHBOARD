@@ -25,6 +25,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onNavigat
     { id: 'standards', label: 'ISO Standards' },
   ];
 
+  // Persistent absolute URL for the logo
   const logoUrl = "https://raw.githubusercontent.com/mrjoe-blip/TFML-ISO41001-FMSMT-DASHBOARD/main/public/iso-fm-logo.png";
 
   return (
